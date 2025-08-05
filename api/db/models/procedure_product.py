@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, Index
 from sqlalchemy.orm import relationship
-from .database import Base
-
+from ..base import Base
 
 class ProcedureProduct(Base):
     """최종 시술 상품 테이블 (가격, 유효기간 포함)"""

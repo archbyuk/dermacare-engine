@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, Index
 from sqlalchemy.orm import relationship
-from .database import Base
-
+from ..base import Base
 
 class ProcedureInfo(Base):
     """시술 상세 정보 테이블"""

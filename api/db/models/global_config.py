@@ -1,6 +1,5 @@
 from sqlalchemy import Column, Integer
-from .database import Base
-
+from ..base import Base
 
 class Global(Base):
     """ 짬통 테이블: 글로벌 설정 """

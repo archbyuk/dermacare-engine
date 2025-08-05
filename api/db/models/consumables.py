@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, Float, Index
 from sqlalchemy.orm import relationship
-from .database import Base
-
+from ..base import Base
 
 class Consumables(Base):
     """ 시술에 사용되는 소모품 정보 """

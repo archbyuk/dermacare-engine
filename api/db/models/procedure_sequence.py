@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, Float, Index
 from sqlalchemy.orm import relationship
-from .database import Base
-
+from ..base import Base
 
 class ProcedureSequence(Base):
     """번들 및 단일 시술 순서대로 나열한 시퀀스 정보"""

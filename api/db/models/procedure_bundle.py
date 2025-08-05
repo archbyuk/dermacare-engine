@@ -1,7 +1,6 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, ForeignKey, Float, Index
 from sqlalchemy.orm import relationship
-from .database import Base
-
+from ..base import Base
 
 class ProcedureBundle(Base):
     """단일 시술을 묶은 번들 시술 정보"""
