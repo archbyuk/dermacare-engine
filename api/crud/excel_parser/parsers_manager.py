@@ -9,12 +9,16 @@ from sqlalchemy.orm import Session
 from typing import Dict, Any
 from ..excel_parser import ExcelParser
 from .abstract_parser import AbstractParser
-from ..base import ResultHelper
+from .base import ResultHelper
 
 from .parsers.enum_parser import EnumParser
-# from .consumables_parser import ConsumablesParser
-# from .global_parser import GlobalParser
-# ... 나머지 파서들은 구현되면 추가
+from .parsers.consumables_parser import ConsumablesParser
+from .parsers.global_parser import GlobalParser
+from .parsers.procedure_element_parser import ProcedureElementParser
+from .parsers.procedure_bundle_parser import ProcedureBundleParser
+from .parsers.procedure_sequence_parser import ProcedureSequenceParser
+from .parsers.procedure_info_parser import ProcedureInfoParser
+from .parsers.procedure_product_parser import ProcedureProductParser
 
 
 class ParsersManager:
@@ -47,20 +51,20 @@ class ParsersManager:
         
         if 'enum' in filename_lower:
             return EnumParser(self.db)
-        # elif 'consumables' in filename_lower:
-        #     return ConsumablesParser(self.db)
-        # elif 'global' in filename_lower:
-        #     return GlobalParser(self.db)
-        # elif 'procedure_element' in filename_lower:
-        #     return ProcedureElementParser(self.db)
-        # elif 'procedure_bundle' in filename_lower:
-        #     return ProcedureBundleParser(self.db)
-        # elif 'procedure_sequence' in filename_lower:
-        #     return ProcedureSequenceParser(self.db)
-        # elif 'procedure_info' in filename_lower:
-        #     return ProcedureInfoParser(self.db)
-        # elif 'procedure_product' in filename_lower:
-        #     return ProcedureProductParser(self.db)
+        elif 'consumables' in filename_lower:
+            return ConsumablesParser(self.db)
+        elif 'global' in filename_lower:
+            return GlobalParser(self.db)
+        elif 'procedure_element' in filename_lower:
+            return ProcedureElementParser(self.db)
+        elif 'procedure_bundle' in filename_lower:
+            return ProcedureBundleParser(self.db)
+        elif 'procedure_sequence' in filename_lower:
+            return ProcedureSequenceParser(self.db)
+        elif 'procedure_info' in filename_lower:
+            return ProcedureInfoParser(self.db)
+        elif 'procedure_product' in filename_lower:
+            return ProcedureProductParser(self.db)
         else:
             raise ValueError(f"지원하지 않는 파일명입니다: {filename}")
     
@@ -130,3 +134,21 @@ class ParsersManager:
                 "Unknown",
                 f"파일 처리 중 예상치 못한 오류 발생: {str(e)}"
             )
+    
+    def get_supported_files(self) -> Dict[str, str]:
+        """
+        지원하는 파일 목록 반환
+        
+        Returns:
+            {파일명_패턴: 테이블명} 딕셔너리
+        """
+        return {
+            "enum": "Enum",
+            "consumables": "Consumables",
+            "global": "Global",
+            "procedure_element": "ProcedureElement",
+            "procedure_bundle": "ProcedureBundle", 
+            "procedure_sequence": "ProcedureSequence",
+            "procedure_info": "ProcedureInfo",
+            "procedure_product": "ProcedureProduct"
+        }
