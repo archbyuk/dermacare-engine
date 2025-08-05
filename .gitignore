@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Environments
+.env
+.venv/
+env/
+venv/
+
+# PyInstaller
+*.manifest
+*.spec
+
+# VSCode
+.vscode/
+
+# macOS
+.DS_Store
+
+# Docker
+*.log
+docker-compose.override.yml
+
+# MySQL volume (optional, if mounted locally)
+mysql_data/
