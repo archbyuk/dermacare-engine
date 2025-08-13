@@ -6,13 +6,18 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Any, List, Tuple
 import pandas as pd
+from sqlalchemy.orm import Session
+from .base import DataCleaner, ResultHelper
 
 
 class AbstractParser(ABC):
     """ 모든 파서가 구현해야 하는 추상 클래스 """
     
-    def __init__(self, table_name: str):
+    def __init__(self, db_session: Session, table_name: str):
+        self.db = db_session
         self.table_name = table_name
+        self.data_cleaner = DataCleaner()
+        self.result_helper = ResultHelper()
     
     @abstractmethod
     def validate_data(self, df: pd.DataFrame) -> Tuple[bool, List[str]]:

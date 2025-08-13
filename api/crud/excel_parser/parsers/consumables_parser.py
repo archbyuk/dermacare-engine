@@ -1,36 +1,34 @@
 """
-    Consumables 테이블 전용 파서
-    - 4행 메타데이터 구조 사용 (일반적인 Excel 파싱)
-    - 소모품 정보: Name, Description, Unit_Type, I_Value, F_Value, Price, Unit_Price
+Consumables 테이블용 Excel 파서
+소모품 데이터를 Excel에서 읽어 DB에 삽입
 """
 
-from sqlalchemy.orm import Session
-from typing import List, Dict, Any, Tuple
 import pandas as pd
+from typing import Dict, Any, List, Tuple
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+
 from ..abstract_parser import AbstractParser
-from ..base import DataCleaner, ResultHelper
 from db.models.consumables import Consumables
 
 
 class ConsumablesParser(AbstractParser):
-    """ Consumables 테이블 전용 파서 클래스 """
+    """소모품 테이블 파서"""
     
-    def __init__(self, db: Session):
-        super().__init__("Consumables")
-        self.db = db
-        self.data_cleaner = DataCleaner()
-        self.result_helper = ResultHelper()
+    def __init__(self, db_session: Session):
+        super().__init__(db_session, "Consumables")
     
     def validate_data(self, df: pd.DataFrame) -> Tuple[bool, List[str]]:
         """
-        Consumables 테이블 특화 데이터 검증
-        - 필수 컬럼: Name
-        - 선택 컬럼: Description, Unit_Type, I_Value, F_Value, Price, Unit_Price
+        Consumables 테이블 데이터 검증
+        - 필수 컬럼 존재 확인
+        - ID 컬럼 중복 확인
+        - 데이터 타입 검증
         """
         errors = []
         
-        # 1. 필수 컬럼 존재 확인
-        required_columns = ['Name']
+        # 필수 컬럼 확인
+        required_columns = ['ID', 'Name']
         for col in required_columns:
             if col not in df.columns:
                 errors.append(f"필수 컬럼이 없습니다: {col}")
@@ -38,67 +36,67 @@ class ConsumablesParser(AbstractParser):
         if errors:
             return False, errors
         
-        # 2. Name 컬럼 빈 값 확인
-        empty_names = df[df['Name'].isna() | (df['Name'].astype(str).str.strip() == '')].index.tolist()
-        if empty_names:
-            errors.append(f"Name이 비어있는 행들: {[i+1 for i in empty_names[:5]]}")
+        # ID 컬럼 검증
+        if df['ID'].isnull().any():
+            errors.append("ID 컬럼에 NULL 값이 있습니다")
         
-        # 3. 숫자 컬럼 검증
-        numeric_columns = ['I_Value', 'F_Value', 'Price', 'Unit_Price']
+        # ID 중복 확인
+        if df['ID'].duplicated().any():
+            duplicated_ids = df[df['ID'].duplicated()]['ID'].tolist()
+            errors.append(f"중복된 ID가 있습니다: {duplicated_ids}")
+        
+        # 숫자 컬럼 검증
+        numeric_columns = ['ID', 'Release', 'I_Value', 'Price', 'Unit_Price']
         for col in numeric_columns:
             if col in df.columns:
-                # NaN이 아닌 값들만 숫자인지 확인
-                non_null_values = df[col].dropna()
-                if not non_null_values.empty:
+                # NULL이 아닌 값들이 숫자인지 확인
+                non_null_mask = df[col].notna()
+                if non_null_mask.any():
                     try:
-                        pd.to_numeric(non_null_values, errors='raise')
-                    except:
+                        pd.to_numeric(df.loc[non_null_mask, col], errors='raise')
+                    except (ValueError, TypeError):
                         errors.append(f"{col} 컬럼에 숫자가 아닌 값이 있습니다")
         
-        # 4. 데이터 길이 검증
-        if 'Name' in df.columns:
-            long_names = df[df['Name'].astype(str).str.len() > 255].index.tolist()
-            if long_names:
-                errors.append(f"Name이 255자를 초과하는 행들: {[i+1 for i in long_names[:3]]}")
-        
-        if 'Unit_Type' in df.columns:
-            long_unit_types = df[df['Unit_Type'].astype(str).str.len() > 100].index.tolist()
-            if long_unit_types:
-                errors.append(f"Unit_Type이 100자를 초과하는 행들: {[i+1 for i in long_unit_types[:3]]}")
+        # Float 컬럼 검증
+        if 'F_Value' in df.columns:
+            non_null_mask = df['F_Value'].notna()
+            if non_null_mask.any():
+                try:
+                    pd.to_numeric(df.loc[non_null_mask, 'F_Value'], errors='raise')
+                except (ValueError, TypeError):
+                    errors.append("F_Value 컬럼에 숫자가 아닌 값이 있습니다")
         
         return len(errors) == 0, errors
     
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Consumables 테이블 특화 데이터 정리
+        Consumables 데이터 정리
+        - 공통 데이터 정리 적용
+        - 컬럼별 특화 정리
         """
-        # 1. 공통 정리 작업
+        # 기본 공통 정리
         df = self.data_cleaner.clean_common_data(df)
         
-        # 2. 문자열 컬럼 정리
-        string_columns = ['Name', 'Description', 'Unit_Type']
-        for col in string_columns:
-            if col in df.columns:
-                # 문자열로 변환하고 공백 제거
-                df[col] = df[col].astype(str).str.strip()
-                # 'nan', 빈 문자열을 None으로 변환
-                df[col] = df[col].replace(['nan', ''], None)
+        # Name 컬럼 특화 정리 (필수 컬럼이므로 NULL 방지)
+        if 'Name' in df.columns:
+            df['Name'] = df['Name'].fillna('Unknown')
         
-        # 3. 숫자 컬럼 정리
-        if 'I_Value' in df.columns:
-            df['I_Value'] = pd.to_numeric(df['I_Value'], errors='coerce').astype('Int64')
+        # 숫자 컬럼 타입 변환 (pandas <NA> 문제 해결)
+        numeric_columns = ['ID', 'Release', 'I_Value', 'Price', 'Unit_Price']
+        for col in numeric_columns:
+            if col in df.columns:
+                # pandas <NA>를 None으로 변환 후 숫자 변환
+                df[col] = df[col].where(df[col].notna(), None)
+                # None이 아닌 값만 숫자로 변환
+                non_null_mask = df[col].notna()
+                if non_null_mask.any():
+                    df.loc[non_null_mask, col] = pd.to_numeric(df.loc[non_null_mask, col], errors='coerce')
         
         if 'F_Value' in df.columns:
-            df['F_Value'] = pd.to_numeric(df['F_Value'], errors='coerce')
-        
-        if 'Price' in df.columns:
-            df['Price'] = pd.to_numeric(df['Price'], errors='coerce').astype('Int64')
-        
-        if 'Unit_Price' in df.columns:
-            df['Unit_Price'] = pd.to_numeric(df['Unit_Price'], errors='coerce').astype('Int64')
-        
-        # 4. Name이 비어있는 행 제거 (필수 컬럼)
-        df = df.dropna(subset=['Name']).reset_index(drop=True)
+            df['F_Value'] = df['F_Value'].where(df['F_Value'].notna(), None)
+            non_null_mask = df['F_Value'].notna()
+            if non_null_mask.any():
+                df.loc[non_null_mask, 'F_Value'] = pd.to_numeric(df.loc[non_null_mask, 'F_Value'], errors='coerce')
         
         return df
     
@@ -106,109 +104,59 @@ class ConsumablesParser(AbstractParser):
         """
         Consumables 테이블에 데이터 삽입
         """
-        total_rows = len(df)
-        inserted_count = 0
-        updated_count = 0
-        error_count = 0
-        errors = []
-        
         try:
+            total_rows = len(df)
+            inserted_count = 0
+            error_count = 0
+            errors = []
+            
             for index, row in df.iterrows():
                 try:
-                    # Name으로 기존 데이터 확인 (중복 방지)
-                    name = str(row['Name']).strip()
-                    if not name:
-                        continue
+                    # ORM 객체 생성
+                    consumable = Consumables(
+                        ID=row.get('ID'),
+                        Release=row.get('Release'),
+                        Name=row.get('Name'),
+                        Description=row.get('Description'),
+                        Unit_Type=row.get('Unit_Type'),
+                        I_Value=row.get('I_Value'),
+                        F_Value=row.get('F_Value'),
+                        Price=row.get('Price'),
+                        Unit_Price=row.get('Unit_Price')
+                    )
                     
-                    existing = self.db.query(Consumables).filter(
-                        Consumables.Name == name
-                    ).first()
-                    
+                    # DB에 추가 (REPLACE 방식)
+                    existing = self.db.query(Consumables).filter(Consumables.ID == row.get('ID')).first()
                     if existing:
-                        # 기존 데이터 업데이트
-                        updated = False
-                        
-                        if 'Description' in df.columns and pd.notna(row['Description']):
-                            desc = str(row['Description']).strip() if row['Description'] != 'None' else None
-                            if existing.Description != desc:
-                                existing.Description = desc
-                                updated = True
-                        
-                        if 'Unit_Type' in df.columns and pd.notna(row['Unit_Type']):
-                            unit_type = str(row['Unit_Type']).strip() if row['Unit_Type'] != 'None' else None
-                            if existing.Unit_Type != unit_type:
-                                existing.Unit_Type = unit_type
-                                updated = True
-                        
-                        if 'I_Value' in df.columns and pd.notna(row['I_Value']):
-                            new_value = int(row['I_Value']) if int(row['I_Value']) != -1 else None
-                            if existing.I_Value != new_value:
-                                existing.I_Value = new_value
-                                updated = True
-                        
-                        if 'F_Value' in df.columns and pd.notna(row['F_Value']):
-                            new_value = float(row['F_Value']) if float(row['F_Value']) != -1 else None
-                            if existing.F_Value != new_value:
-                                existing.F_Value = new_value
-                                updated = True
-                        
-                        if 'Price' in df.columns and pd.notna(row['Price']):
-                            new_value = int(row['Price']) if int(row['Price']) != -1 else None
-                            if existing.Price != new_value:
-                                existing.Price = new_value
-                                updated = True
-                        
-                        if 'Unit_Price' in df.columns and pd.notna(row['Unit_Price']):
-                            new_value = int(row['Unit_Price']) if int(row['Unit_Price']) != -1 else None
-                            if existing.Unit_Price != new_value:
-                                existing.Unit_Price = new_value
-                                updated = True
-                        
-                        if updated:
-                            updated_count += 1
-                        inserted_count += 1
-                    
+                        # 기존 레코드 업데이트
+                        for key, value in row.items():
+                            if hasattr(existing, key):
+                                setattr(existing, key, value)
                     else:
-                        # 새로운 데이터 삽입
-                        consumable = Consumables(
-                            Name=name,
-                            Description=str(row['Description']).strip() if pd.notna(row.get('Description')) and str(row['Description']).strip() != 'None' else None,
-                            Unit_Type=str(row['Unit_Type']).strip() if pd.notna(row.get('Unit_Type')) and str(row['Unit_Type']).strip() != 'None' else None,
-                            I_Value=int(row['I_Value']) if pd.notna(row.get('I_Value')) and int(row['I_Value']) != -1 else None,
-                            F_Value=float(row['F_Value']) if pd.notna(row.get('F_Value')) and float(row['F_Value']) != -1 else None,
-                            Price=int(row['Price']) if pd.notna(row.get('Price')) and int(row['Price']) != -1 else None,
-                            Unit_Price=int(row['Unit_Price']) if pd.notna(row.get('Unit_Price')) and int(row['Unit_Price']) != -1 else None
-                        )
+                        # 새 레코드 추가
                         self.db.add(consumable)
-                        inserted_count += 1
                     
-                    # 매 50개마다 커밋
-                    if (index + 1) % 50 == 0:
-                        self.db.commit()
-                
+                    inserted_count += 1
+                    
                 except Exception as e:
                     error_count += 1
-                    errors.append(f"Row {index + 1}: {str(e)}")
-                    self.db.rollback()
+                    errors.append(f"행 {index + 1}: {str(e)}")
+                    continue
             
-            # 최종 커밋
+            # 커밋
             self.db.commit()
-        
+            
+            return self.result_helper.create_result_dict(
+                table_name=self.table_name,
+                total_rows=total_rows,
+                inserted_count=inserted_count,
+                error_count=error_count,
+                errors=errors if errors else None
+            )
+            
         except Exception as e:
-            error_count = total_rows
-            errors.append(f"최종 커밋 실패: {str(e)}")
             self.db.rollback()
-        
-        # 결과 생성
-        result = self.result_helper.create_result_dict(
-            table_name=self.table_name,
-            total_rows=total_rows,
-            inserted_count=inserted_count,
-            error_count=error_count,
-            errors=errors
-        )
-        
-        # 업데이트 정보 추가
-        result['updated_count'] = updated_count
-        
-        return result
+            return self.result_helper.create_error_result(
+                table_name=self.table_name,
+                error_message=f"삽입 중 오류 발생: {str(e)}"
+            )

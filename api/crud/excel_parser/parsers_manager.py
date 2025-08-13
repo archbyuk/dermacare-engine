@@ -17,8 +17,14 @@ from .parsers.global_parser import GlobalParser
 from .parsers.procedure_element_parser import ProcedureElementParser
 from .parsers.procedure_bundle_parser import ProcedureBundleParser
 from .parsers.procedure_sequence_parser import ProcedureSequenceParser
-from .parsers.procedure_info_parser import ProcedureInfoParser
-from .parsers.procedure_product_parser import ProcedureProductParser
+from .parsers.procedure_class_parser import ProcedureClassParser
+from .parsers.procedure_custom_parser import ProcedureCustomParser
+from .parsers.info_standard_parser import InfoStandardParser
+from .parsers.info_event_parser import InfoEventParser
+from .parsers.info_membership_parser import InfoMembershipParser
+from .parsers.product_standard_parser import ProductStandardParser
+from .parsers.product_event_parser import ProductEventParser
+from .parsers.membership_parser import MembershipParser
 
 
 class ParsersManager:
@@ -48,24 +54,52 @@ class ParsersManager:
         """
         
         filename_lower = filename.lower()
+        print(f"DEBUG: 파서 선택 중 - 파일명: {filename}, 소문자: {filename_lower}")
         
         if 'enum' in filename_lower:
+            print("DEBUG: EnumParser 선택됨")
             return EnumParser(self.db)
         elif 'consumables' in filename_lower:
+            print("DEBUG: ConsumablesParser 선택됨")
             return ConsumablesParser(self.db)
         elif 'global' in filename_lower:
+            print("DEBUG: GlobalParser 선택됨")
             return GlobalParser(self.db)
         elif 'procedure_element' in filename_lower:
+            print("DEBUG: ProcedureElementParser 선택됨")
             return ProcedureElementParser(self.db)
         elif 'procedure_bundle' in filename_lower:
+            print("DEBUG: ProcedureBundleParser 선택됨")
             return ProcedureBundleParser(self.db)
         elif 'procedure_sequence' in filename_lower:
+            print("DEBUG: ProcedureSequenceParser 선택됨")
             return ProcedureSequenceParser(self.db)
-        elif 'procedure_info' in filename_lower:
-            return ProcedureInfoParser(self.db)
-        elif 'procedure_product' in filename_lower:
-            return ProcedureProductParser(self.db)
+        elif 'procedure_class' in filename_lower:
+            print("DEBUG: ProcedureClassParser 선택됨")
+            return ProcedureClassParser(self.db)
+        elif 'procedure_custom' in filename_lower:
+            print("DEBUG: ProcedureCustomParser 선택됨")
+            return ProcedureCustomParser(self.db)
+        elif 'info_standard' in filename_lower:
+            print("DEBUG: InfoStandardParser 선택됨")
+            return InfoStandardParser(self.db)
+        elif 'info_event' in filename_lower:
+            print("DEBUG: InfoEventParser 선택됨")
+            return InfoEventParser(self.db)
+        elif 'info_membership' in filename_lower:
+            print("DEBUG: InfoMembershipParser 선택됨")
+            return InfoMembershipParser(self.db)
+        elif 'product_standard' in filename_lower:
+            print("DEBUG: ProductStandardParser 선택됨")
+            return ProductStandardParser(self.db)
+        elif 'product_event' in filename_lower:
+            print("DEBUG: ProductEventParser 선택됨")
+            return ProductEventParser(self.db)
+        elif 'membership' in filename_lower:
+            print("DEBUG: MembershipParser 선택됨")
+            return MembershipParser(self.db)
         else:
+            print(f"DEBUG: 지원하지 않는 파일명: {filename}")
             raise ValueError(f"지원하지 않는 파일명입니다: {filename}")
     
     async def process_excel_file(self, filename: str, file_bytes: bytes) -> Dict[str, Any]:
@@ -80,47 +114,60 @@ class ParsersManager:
                 처리 결과 딕셔너리
         """
         try:
+            print(f"DEBUG: process_excel_file 시작 - {filename}")
+            
             # 1. 파일명으로 적절한 파서 선택
             parser = self.get_parser_by_filename(filename)
+            print(f"DEBUG: 파서 선택 완료 - {parser.table_name}")
             
-            # 2. Enum 파일은 독립적으로 처리, 나머지는 공통 파싱 사용
+            # 2. Enum 파일은 독립적으로 처리
             if parser.table_name == "Enum":
+                print("DEBUG: Enum 파일 독립 처리")
                 # Enum은 자체 process_file 메서드 사용 (완전 독립형)
                 result = await parser.process_file(file_bytes)
                 result['filename'] = filename
                 return result
             
-            else:
-                # 나머지 파일들은 기존 방식 (공통 파싱 + 특화 처리)
-                # 2. 엑셀 파싱 (범용 처리) : excel_parser.py 사용
-                df = await self.excel_parser.parse_excel(file_bytes)
-                
-                if df.empty:
-                    return self.result_helper.create_error_result(
-                        parser.table_name, 
-                        "파일이 비어있거나 사용할 데이터가 없습니다"
-                    )
-                
-                # 3. 데이터 검증 (각 파서별 특화 검증)
-                is_valid, validation_errors = parser.validate_data(df)
-                if not is_valid:
-                    return {
-                        "success": False,
-                        "table_name": parser.table_name,
-                        "filename": filename,
-                        "errors": validation_errors
-                    }
-                
-                # 4. 데이터 정리 (각 파서별 특화 정리)
-                df = parser.clean_data(df)
-                
-                # 5. DB 삽입 (각 파서별 특화 삽입)
-                result = parser.insert_data(df)
-                
-                # 파일명 정보 추가
-                result['filename'] = filename
-                
-                return result
+            # 3. 나머지 파일들은 공통 파싱 사용
+            print("DEBUG: Excel 파싱 시작")
+            df = await self.excel_parser.parse_excel(file_bytes)
+            print(f"DEBUG: Excel 파싱 완료 - DataFrame 크기: {df.shape}")
+            print(f"DEBUG: DataFrame 컬럼: {df.columns.tolist()}")
+            
+            if df.empty:
+                print("DEBUG: DataFrame이 비어있음")
+                return self.result_helper.create_error_result(
+                    parser.table_name, 
+                    "파일이 비어있거나 사용할 데이터가 없습니다"
+                )
+            
+            # 4. 데이터 검증 (각 파서별 특화 검증)
+            print("DEBUG: 데이터 검증 시작")
+            is_valid, validation_errors = parser.validate_data(df)
+            print(f"DEBUG: 데이터 검증 완료 - 유효성: {is_valid}")
+            if not is_valid:
+                print(f"DEBUG: 검증 실패 - 오류: {validation_errors}")
+                return {
+                    "success": False,
+                    "table_name": parser.table_name,
+                    "filename": filename,
+                    "errors": validation_errors
+                }
+            
+            # 5. 데이터 정리 (각 파서별 특화 정리)
+            print("DEBUG: 데이터 정리 시작")
+            df = parser.clean_data(df)
+            print("DEBUG: 데이터 정리 완료")
+            
+            # 6. DB 삽입 (각 파서별 특화 삽입)
+            print("DEBUG: DB 삽입 시작")
+            result = parser.insert_data(df)
+            print("DEBUG: DB 삽입 완료")
+            
+            # 파일명 정보 추가
+            result['filename'] = filename
+            
+            return result
             
         except ValueError as e:
             # 지원하지 않는 파일명 등
@@ -144,11 +191,14 @@ class ParsersManager:
         """
         return {
             "enum": "Enum",
-            "consumables": "Consumables",
+            "consumables": "Consumables", 
             "global": "Global",
             "procedure_element": "ProcedureElement",
-            "procedure_bundle": "ProcedureBundle", 
+            "procedure_bundle": "ProcedureBundle",
             "procedure_sequence": "ProcedureSequence",
-            "procedure_info": "ProcedureInfo",
-            "procedure_product": "ProcedureProduct"
+            "procedure_class": "ProcedureClass",
+            "info_standard": "InfoStandard",
+            "info_event": "InfoEvent",
+            "product_standard": "ProductStandard",
+            "product_event": "ProductEvent"
         }

@@ -1,6 +1,6 @@
 """
-DermaCare Excel Parser Package
-Excel 파일 파싱 및 데이터베이스 삽입을 담당하는 패키지
+    DermaCare Excel Parser Package
+    Excel 파일 파싱 및 데이터베이스 삽입을 담당하는 패키지
 """
 
 from .excel_parser import ExcelParser

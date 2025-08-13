@@ -1,36 +1,30 @@
 """
-    ProcedureElement 테이블 전용 파서
-    - 4행 메타데이터 구조 사용 (일반적인 Excel 파싱)
-    - 단일 시술 상세 정보: Class_Major, Class_Sub, Name, Position_Type, Cost_Time 등
+Procedure_Element 테이블용 Excel 파서
+시술 요소 데이터를 Excel에서 읽어 DB에 삽입
 """
 
-from sqlalchemy.orm import Session
-from typing import List, Dict, Any, Tuple
 import pandas as pd
+from typing import Dict, Any, List, Tuple
+from sqlalchemy.orm import Session
+
 from ..abstract_parser import AbstractParser
-from ..base import DataCleaner, ResultHelper
-from db.models.procedure_element import ProcedureElement
+from db.models.procedure import ProcedureElement
 
 
 class ProcedureElementParser(AbstractParser):
-    """ ProcedureElement 테이블 전용 파서 클래스 """
+    """시술 요소 테이블 파서"""
     
-    def __init__(self, db: Session):
-        super().__init__("ProcedureElement")
-        self.db = db
-        self.data_cleaner = DataCleaner()
-        self.result_helper = ResultHelper()
+    def __init__(self, db_session: Session):
+        super().__init__(db_session, "Procedure_Element")
     
     def validate_data(self, df: pd.DataFrame) -> Tuple[bool, List[str]]:
         """
-        ProcedureElement 테이블 특화 데이터 검증
-        - 필수 컬럼: Name
-        - 선택 컬럼: Class_Major, Class_Sub, Class_Detail, Class_Type, Position_Type, Cost_Time 등
+        Procedure_Element 테이블 데이터 검증
         """
         errors = []
         
-        # 1. 필수 컬럼 존재 확인
-        required_columns = ['Name']
+        # 필수 컬럼 확인
+        required_columns = ['ID', 'Name']
         for col in required_columns:
             if col not in df.columns:
                 errors.append(f"필수 컬럼이 없습니다: {col}")
@@ -38,181 +32,142 @@ class ProcedureElementParser(AbstractParser):
         if errors:
             return False, errors
         
-        # 2. Name 컬럼 빈 값 확인 (경고만, 에러 아님)
-        empty_names = df[df['Name'].isna() | (df['Name'].astype(str).str.strip() == '')].index.tolist()
-        if empty_names:
-            print(f"⚠️ Name이 비어있는 행들은 건너뜁니다: {len(empty_names)}개 행")
+        # ID 컬럼 검증
+        if df['ID'].isnull().any():
+            errors.append("ID 컬럼에 NULL 값이 있습니다")
         
-        # 3. 숫자 컬럼 검증
-        numeric_columns = ['Cost_Time', 'Plan_Count', 'Consum_1_Count', 'Procedure_Cost', 'Base_Price']
+        # ID 중복 확인
+        if df['ID'].duplicated().any():
+            duplicated_ids = df[df['ID'].duplicated()]['ID'].tolist()
+            errors.append(f"중복된 ID가 있습니다: {duplicated_ids}")
+        
+        # 숫자 컬럼 검증
+        numeric_columns = ['ID', 'Release', 'Plan_Count', 'Consum_1_ID', 
+                          'Consum_1_Count', 'Procedure_Cost', 'Price']
         for col in numeric_columns:
             if col in df.columns:
-                non_null_values = df[col].dropna()
-                if not non_null_values.empty:
+                non_null_mask = df[col].notna()
+                if non_null_mask.any():
                     try:
-                        pd.to_numeric(non_null_values, errors='raise')
-                    except:
+                        pd.to_numeric(df.loc[non_null_mask, col], errors='raise')
+                    except (ValueError, TypeError):
                         errors.append(f"{col} 컬럼에 숫자가 아닌 값이 있습니다")
         
-        # 4. Boolean 컬럼 검증 (Plan_State)
-        if 'Plan_State' in df.columns:
-            non_null_values = df['Plan_State'].dropna()
-            if not non_null_values.empty:
-                invalid_bool = non_null_values[~non_null_values.isin([0, 1, True, False, '0', '1', 'true', 'false', 'True', 'False'])]
-                if not invalid_bool.empty:
-                    errors.append("Plan_State 컬럼에 Boolean이 아닌 값이 있습니다")
-        
-        # 5. 데이터 길이 검증
-        string_cols_limits = {
-            'Name': 255,
-            'Class_Major': 100,
-            'Class_Sub': 100,
-            'Class_Detail': 100,
-            'Class_Type': 100,
-            'Position_Type': 100
-        }
-        
-        for col, limit in string_cols_limits.items():
-            if col in df.columns:
-                long_values = df[df[col].astype(str).str.len() > limit].index.tolist()
-                if long_values:
-                    errors.append(f"{col}이 {limit}자를 초과하는 행들: {[i+1 for i in long_values[:3]]}")
+        # Float 컬럼 검증
+        if 'Cost_Time' in df.columns:
+            non_null_mask = df['Cost_Time'].notna()
+            if non_null_mask.any():
+                try:
+                    pd.to_numeric(df.loc[non_null_mask, 'Cost_Time'], errors='raise')
+                except (ValueError, TypeError):
+                    errors.append("Cost_Time 컬럼에 숫자가 아닌 값이 있습니다")
         
         return len(errors) == 0, errors
     
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        ProcedureElement 테이블 특화 데이터 정리
+        Procedure_Element 데이터 정리
         """
-        # 1. 공통 정리 작업
+        # 기본 공통 정리
         df = self.data_cleaner.clean_common_data(df)
         
-        # 2. 문자열 컬럼 정리
-        string_columns = ['Name', 'Description', 'Class_Major', 'Class_Sub', 'Class_Detail', 'Class_Type', 'Position_Type']
-        for col in string_columns:
-            if col in df.columns:
-                df[col] = df[col].astype(str).str.strip()
-                df[col] = df[col].replace(['nan', ''], None)
+        # Name 컬럼 필수 처리
+        if 'Name' in df.columns:
+            df['Name'] = df['Name'].fillna('Unknown Procedure')
         
-        # 3. 숫자 컬럼 정리
-        integer_columns = ['Cost_Time', 'Plan_Count', 'Consum_1_ID', 'Consum_1_Count', 'Procedure_Cost', 'Base_Price']
-        for col in integer_columns:
+        # 숫자 컬럼 타입 변환 (pandas <NA> 문제 해결)
+        numeric_columns = ['ID', 'Release', 'Plan_Count', 'Consum_1_ID', 
+                          'Consum_1_Count', 'Procedure_Cost', 'Price']
+        for col in numeric_columns:
             if col in df.columns:
-                df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
+                # pandas <NA>를 None으로 변환 후 숫자 변환
+                df[col] = df[col].where(df[col].notna(), None)
+                # None이 아닌 값만 숫자로 변환
+                non_null_mask = df[col].notna()
+                if non_null_mask.any():
+                    df.loc[non_null_mask, col] = pd.to_numeric(df.loc[non_null_mask, col], errors='coerce')
         
-        # 4. Boolean 컬럼 정리
+        # Float 컬럼 변환
+        if 'Cost_Time' in df.columns:
+            df['Cost_Time'] = df['Cost_Time'].where(df['Cost_Time'].notna(), None)
+            non_null_mask = df['Cost_Time'].notna()
+            if non_null_mask.any():
+                df.loc[non_null_mask, 'Cost_Time'] = pd.to_numeric(df.loc[non_null_mask, 'Cost_Time'], errors='coerce')
+        
+        # Boolean 컬럼 변환
         if 'Plan_State' in df.columns:
-            # Boolean 값으로 변환 (1, '1', 'true', 'True' -> True, 나머지 -> False)
-            df['Plan_State'] = df['Plan_State'].apply(
-                lambda x: x in [1, '1', 'true', 'True', True] if pd.notna(x) else False
-            )
-        
-        # 5. Name이 비어있는 행 제거 (필수 컬럼)
-        df = df.dropna(subset=['Name']).reset_index(drop=True)
+            df['Plan_State'] = df['Plan_State'].where(df['Plan_State'].notna(), None)
         
         return df
     
     def insert_data(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
-        ProcedureElement 테이블에 데이터 삽입
+        Procedure_Element 테이블에 데이터 삽입
         """
-        total_rows = len(df)
-        inserted_count = 0
-        updated_count = 0
-        error_count = 0
-        errors = []
-        
         try:
+            total_rows = len(df)
+            inserted_count = 0
+            error_count = 0
+            errors = []
+            
             for index, row in df.iterrows():
                 try:
-                    # Name으로 기존 데이터 확인 (중복 방지)
-                    name = str(row['Name']).strip()
-                    if not name or name == 'nan':
-                        continue  # 빈 Name은 건너뛰기
+                    # ORM 객체 생성
+                    element = ProcedureElement(
+                        ID=row.get('ID'),
+                        Release=row.get('Release'),
+                        Class_Major=row.get('Class_Major'),
+                        Class_Sub=row.get('Class_Sub'),
+                        Class_Detail=row.get('Class_Detail'),
+                        Class_Type=row.get('Class_Type'),
+                        Name=row.get('Name'),
+                        description=row.get('description'),
+                        Position_Type=row.get('Position_Type'),
+                        Cost_Time=row.get('Cost_Time'),
+                        Plan_State=row.get('Plan_State'),
+                        Plan_Count=row.get('Plan_Count'),
+                        Consum_1_ID=row.get('Consum_1_ID'),
+                        Consum_1_Count=row.get('Consum_1_Count'),
+                        Procedure_Level=row.get('Procedure_Level'),
+                        Procedure_Cost=row.get('Procedure_Cost'),
+                        Price=row.get('Price')
+                    )
                     
+                    # DB에 추가 (REPLACE 방식)
                     existing = self.db.query(ProcedureElement).filter(
-                        ProcedureElement.Name == name
+                        ProcedureElement.ID == row.get('ID')
                     ).first()
                     
-                    # 데이터 준비
-                    data = {
-                        'Class_Major': str(row['Class_Major']).strip() if pd.notna(row.get('Class_Major')) and str(row['Class_Major']).strip() != 'None' else None,
-                        'Class_Sub': str(row['Class_Sub']).strip() if pd.notna(row.get('Class_Sub')) and str(row['Class_Sub']).strip() != 'None' else None,
-                        'Class_Detail': str(row['Class_Detail']).strip() if pd.notna(row.get('Class_Detail')) and str(row['Class_Detail']).strip() != 'None' else None,
-                        'Class_Type': str(row['Class_Type']).strip() if pd.notna(row.get('Class_Type')) and str(row['Class_Type']).strip() != 'None' else None,
-                        'Description': str(row['Description']).strip() if pd.notna(row.get('Description')) and str(row['Description']).strip() != 'None' else None,
-                        'Position_Type': str(row['Position_Type']).strip() if pd.notna(row.get('Position_Type')) and str(row['Position_Type']).strip() != 'None' else None,
-                        'Cost_Time': int(row['Cost_Time']) if pd.notna(row.get('Cost_Time')) and int(row['Cost_Time']) != -1 else None,
-                        'Plan_State': bool(row.get('Plan_State', False)),
-                        'Plan_Count': int(row['Plan_Count']) if pd.notna(row.get('Plan_Count')) and int(row['Plan_Count']) != -1 else 1,
-                        'Consum_1_ID': self._get_valid_consumable_id(row.get('Consum_1_ID')),
-                        'Consum_1_Count': int(row['Consum_1_Count']) if pd.notna(row.get('Consum_1_Count')) and int(row['Consum_1_Count']) != -1 else 1,
-                        'Procedure_Cost': int(row['Procedure_Cost']) if pd.notna(row.get('Procedure_Cost')) and int(row['Procedure_Cost']) != -1 else None,
-                        'Base_Price': int(row['Base_Price']) if pd.notna(row.get('Base_Price')) and int(row['Base_Price']) != -1 else None
-                    }
-                    
                     if existing:
-                        # 기존 데이터 업데이트
-                        updated = False
-                        for key, value in data.items():
-                            if getattr(existing, key) != value:
+                        # 기존 레코드 업데이트
+                        for key, value in row.items():
+                            if hasattr(existing, key):
                                 setattr(existing, key, value)
-                                updated = True
-                        
-                        if updated:
-                            updated_count += 1
-                        inserted_count += 1
-                    
                     else:
-                        # 새로운 데이터 삽입
-                        procedure_element = ProcedureElement(Name=name, **data)
-                        self.db.add(procedure_element)
-                        inserted_count += 1
+                        # 새 레코드 추가
+                        self.db.add(element)
                     
-                    # 매 50개마다 커밋
-                    if (index + 1) % 50 == 0:
-                        self.db.commit()
-                
+                    inserted_count += 1
+                    
                 except Exception as e:
                     error_count += 1
-                    errors.append(f"Row {index + 1}: {str(e)}")
-                    self.db.rollback()
+                    errors.append(f"행 {index + 1}: {str(e)}")
+                    continue
             
-            # 최종 커밋
+            # 커밋
             self.db.commit()
-        
+            
+            return self.result_helper.create_result_dict(
+                table_name=self.table_name,
+                total_rows=total_rows,
+                inserted_count=inserted_count,
+                error_count=error_count,
+                errors=errors if errors else None
+            )
+            
         except Exception as e:
-            error_count = total_rows
-            errors.append(f"최종 커밋 실패: {str(e)}")
             self.db.rollback()
-        
-        # 결과 생성
-        result = self.result_helper.create_result_dict(
-            table_name=self.table_name,
-            total_rows=total_rows,
-            inserted_count=inserted_count,
-            error_count=error_count,
-            errors=errors
-        )
-        
-        # 업데이트 정보 추가
-        result['updated_count'] = updated_count
-        
-        return result
-    
-    def _get_valid_consumable_id(self, consumable_id):
-        """유효한 Consumable ID 반환 (존재하지 않으면 None)"""
-        if pd.isna(consumable_id) or consumable_id == 0 or consumable_id == -1:
-            return None
-        
-        try:
-            consumable_id = int(consumable_id)
-            if consumable_id <= 0:
-                return None
-                
-            # DB에서 해당 ID가 존재하는지 확인
-            from db.models.consumables import Consumables
-            existing = self.db.query(Consumables).filter(Consumables.ID == consumable_id).first()
-            return consumable_id if existing else None
-        except (ValueError, TypeError):
-            return None
+            return self.result_helper.create_error_result(
+                table_name=self.table_name,
+                error_message=f"삽입 중 오류 발생: {str(e)}"
+            )

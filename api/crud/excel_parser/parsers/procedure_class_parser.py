@@ -1,6 +1,6 @@
 """
-Procedure_Bundle 테이블용 Excel 파서
-시술 번들 데이터를 Excel에서 읽어 DB에 삽입 (복합 PK: GroupID, ID)
+Procedure_Class 테이블용 Excel 파서
+시술 분류 데이터를 Excel에서 읽어 DB에 삽입 (복합 PK: GroupID, ID)
 """
 
 import pandas as pd
@@ -8,19 +8,18 @@ from typing import Dict, Any, List, Tuple
 from sqlalchemy.orm import Session
 
 from ..abstract_parser import AbstractParser
-from db.models.procedure import ProcedureBundle
+from db.models.procedure import ProcedureClass
 
 
-class ProcedureBundleParser(AbstractParser):
-    """시술 번들 테이블 파서 (복합 PK)"""
+class ProcedureClassParser(AbstractParser):
+    """시술 분류 테이블 파서 (복합 PK)"""
     
     def __init__(self, db_session: Session):
-        super().__init__(db_session, "Procedure_Bundle")
+        super().__init__(db_session, "Procedure_Class")
     
     def validate_data(self, df: pd.DataFrame) -> Tuple[bool, List[str]]:
         """
-        Procedure_Bundle 테이블 데이터 검증
-        - 복합 PK (GroupID, ID) 검증
+        Procedure_Class 테이블 데이터 검증
         """
         errors = []
         
@@ -45,7 +44,7 @@ class ProcedureBundleParser(AbstractParser):
             errors.append(f"중복된 (GroupID, ID) 조합이 있습니다: {duplicated_pairs}")
         
         # 숫자 컬럼 검증
-        numeric_columns = ['GroupID', 'ID', 'Release', 'Element_ID', 'Element_Cost']
+        numeric_columns = ['GroupID', 'ID', 'Release']
         for col in numeric_columns:
             if col in df.columns:
                 non_null_mask = df[col].notna()
@@ -55,45 +54,26 @@ class ProcedureBundleParser(AbstractParser):
                     except (ValueError, TypeError):
                         errors.append(f"{col} 컬럼에 숫자가 아닌 값이 있습니다")
         
-        # Float 컬럼 검증
-        if 'Price_Ratio' in df.columns:
-            non_null_mask = df['Price_Ratio'].notna()
-            if non_null_mask.any():
-                try:
-                    pd.to_numeric(df.loc[non_null_mask, 'Price_Ratio'], errors='raise')
-                except (ValueError, TypeError):
-                    errors.append("Price_Ratio 컬럼에 숫자가 아닌 값이 있습니다")
-        
         return len(errors) == 0, errors
     
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Procedure_Bundle 데이터 정리
+        Procedure_Class 데이터 정리
         """
         # 기본 공통 정리
         df = self.data_cleaner.clean_common_data(df)
         
-        # 숫자 컬럼 타입 변환 (pandas <NA> 문제 해결)
-        numeric_columns = ['GroupID', 'ID', 'Release', 'Element_ID', 'Element_Cost']
+        # 숫자 컬럼 타입 변환
+        numeric_columns = ['GroupID', 'ID', 'Release']
         for col in numeric_columns:
             if col in df.columns:
-                df[col] = df[col].where(df[col].notna(), None)
-                non_null_mask = df[col].notna()
-                if non_null_mask.any():
-                    df.loc[non_null_mask, col] = pd.to_numeric(df.loc[non_null_mask, col], errors='coerce')
-        
-        # Float 컬럼 변환
-        if 'Price_Ratio' in df.columns:
-            df['Price_Ratio'] = df['Price_Ratio'].where(df['Price_Ratio'].notna(), None)
-            non_null_mask = df['Price_Ratio'].notna()
-            if non_null_mask.any():
-                df.loc[non_null_mask, 'Price_Ratio'] = pd.to_numeric(df.loc[non_null_mask, 'Price_Ratio'], errors='coerce')
+                df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
         
         return df
     
     def insert_data(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
-        Procedure_Bundle 테이블에 데이터 삽입 (복합 PK 처리)
+        Procedure_Class 테이블에 데이터 삽입 (복합 PK 처리)
         """
         try:
             total_rows = len(df)
@@ -103,26 +83,21 @@ class ProcedureBundleParser(AbstractParser):
             
             for index, row in df.iterrows():
                 try:
-                    # Primary Key 검증: GroupID나 ID가 없으면 건너뛰기
-                    if pd.isna(row.get('GroupID')) or pd.isna(row.get('ID')):
-                        continue
-                    
                     # ORM 객체 생성
-                    bundle = ProcedureBundle(
+                    proc_class = ProcedureClass(
                         GroupID=row.get('GroupID'),
                         ID=row.get('ID'),
                         Release=row.get('Release'),
-                        Name=row.get('Name'),
-                        Description=row.get('Description'),
-                        Element_ID=row.get('Element_ID'),
-                        Element_Cost=row.get('Element_Cost'),
-                        Price_Ratio=row.get('Price_Ratio')
+                        Class_Major=row.get('Class_Major'),
+                        Class_Sub=row.get('Class_Sub'),
+                        Class_Detail=row.get('Class_Detail'),
+                        Class_Type=row.get('Class_Type')
                     )
                     
                     # DB에 추가 (복합 PK로 REPLACE 방식)
-                    existing = self.db.query(ProcedureBundle).filter(
-                        ProcedureBundle.GroupID == row.get('GroupID'),
-                        ProcedureBundle.ID == row.get('ID')
+                    existing = self.db.query(ProcedureClass).filter(
+                        ProcedureClass.GroupID == row.get('GroupID'),
+                        ProcedureClass.ID == row.get('ID')
                     ).first()
                     
                     if existing:
@@ -132,7 +107,7 @@ class ProcedureBundleParser(AbstractParser):
                                 setattr(existing, key, value)
                     else:
                         # 새 레코드 추가
-                        self.db.add(bundle)
+                        self.db.add(proc_class)
                     
                     inserted_count += 1
                     

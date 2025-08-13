@@ -1,20 +1,13 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String
 from ..base import Base
 
 class Enum(Base):
-    """ 짬통 테이블: 공통 코드 테이블 (타입별 Enum 값 저장) """
+    """열거형 테이블"""
     __tablename__ = "Enum"
 
-    enum_id = Column(Integer, primary_key=True, autoincrement=True, comment='자동 증가 고유 ID')
-    ID = Column(Integer, nullable=False, comment='분류별 ID')
-    Release = Column(Boolean, default=True, comment='비/활성 여부')
-    Type = Column(String(50), nullable=False, comment='enum 분류 (ex: ProcedureType)')
-    Code = Column(String(100), nullable=False, comment='실제 값')
-    Name = Column(String(255), comment='표시용 이름')
-
-    __table_args__ = (
-        {'mysql_engine': 'InnoDB'},
-    )
+    enum_type = Column(String(50), primary_key=True, comment='열거형 타입명')
+    id = Column(Integer, primary_key=True, comment='열거형 ID')
+    name = Column(String(255), comment='열거형 이름')
 
     def __repr__(self):
-        return f"<Enum(ID={self.ID}, Type='{self.Type}', Code='{self.Code}', Name='{self.Name}')>"
+        return f"<Enum(enum_type='{self.enum_type}', id={self.id}, name='{self.name}')>"
