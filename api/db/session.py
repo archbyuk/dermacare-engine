@@ -30,11 +30,12 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # 데이터베이스 세션 의존성
 def get_db():
-    """데이터베이스 세션을 생성하고 반환하는 의존성 함수"""
-    db = SessionLocal()
+    """ 데이터베이스 세션을 생성하고 반환하는 의존성 함수 """
+    db = SessionLocal() # 새로운 세션 생성
     
     try:
-        yield db
+        yield db  # 세션을 API EndPoint에 전달
     
     finally:
-        db.close()
+        db.close() # 요청 완료 후 세션 정리
+        

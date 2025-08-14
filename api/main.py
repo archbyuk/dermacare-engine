@@ -44,7 +44,7 @@ def root():
     return {
         "message": "DermaCare API Server",
         "version": "2.0.0",
-        "description": "Excel 파일 업로드 및 파싱을 지원하는 시술 관리 시스템",
+        "description": "Excel 파일 업로드 및 파싱을 지원하는 시술 조회 시스템",
         "endpoints": {
             "health": "/health",
             "excel": "/excel",
