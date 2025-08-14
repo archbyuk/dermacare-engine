@@ -1,8 +1,8 @@
 """
-DermaCare API 메인 애플리케이션
+    DermaCare API 메인 애플리케이션
 
-FastAPI 애플리케이션의 진입점입니다.
-모든 라우터를 등록하고 기본 설정을 관리합니다.
+    FastAPI 애플리케이션의 진입점입니다.
+    모든 라우터를 등록하고 기본 설정을 관리합니다.
 """
 
 from fastapi import FastAPI
@@ -14,6 +14,7 @@ from api.search import search_router
 from api.read import read_router
 from api.sort import sort_router
 from api.filter import filter_router
+from api.auth import router as auth_router
 
 app = FastAPI(
     title="DermaCare API",
@@ -37,6 +38,7 @@ app.include_router(search_router)
 app.include_router(read_router)
 app.include_router(sort_router)
 app.include_router(filter_router)
+app.include_router(auth_router)
 
 @app.get("/")
 def root():
@@ -52,6 +54,7 @@ def root():
             "read": "/read",
             "sort": "/sort",
             "filter": "/filter",
+            "auth": "/auth",
             "docs": "/docs",
             "redoc": "/redoc"
         }

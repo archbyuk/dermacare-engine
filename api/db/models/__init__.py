@@ -7,6 +7,7 @@ DermaCare Database Models Package
 from .enum import Enum
 from .consumables import Consumables
 from .global_config import Global
+from .users import Users
 
 # 정보 모델들
 from .info import InfoEvent, InfoMembership, InfoStandard
@@ -31,6 +32,7 @@ __all__ = [
     "Enum",
     "Consumables", 
     "Global",
+    "Users",
     
     # 정보 모델들
     "InfoEvent",
