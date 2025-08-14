@@ -10,7 +10,9 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     ports:
-      - "3306:3306"
+      - "3309:3306"
+    networks:
+      - dermacare-network
 
   # FastAPI 백엔드 서버 컨테이너
   api:
@@ -24,18 +26,20 @@ services:
       - DB_HOST=${DB_HOST}
       - DB_PORT=${DB_PORT}
       - DB_NAME=${DB_NAME}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
       - DEBUG=False
     ports:
-      - "80:8000"
+      - "9000:8000"
     depends_on:
       - db
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    networks:
+      - dermacare-network
 
 # MySQL 데이터를 영구 저장
 volumes:
   mysql_data:
+
+# 네트워크 설정
+networks:
+  dermacare-network:
+    driver: bridge

@@ -1,6 +1,6 @@
 -- =================================
 -- DermaCare Database Schema (Updated)
--- 14개 테이블 구조
+-- 15개 테이블 구조 (사용자 인증 테이블 추가)
 -- =================================
 
 -- 문자셋 설정 (한글 COMMENT 지원)
@@ -12,6 +12,7 @@ SET character_set_results = utf8mb4;
 SET character_set_server = utf8mb4;
 
 -- 기존 테이블 삭제 (의존성 순서 고려)
+DROP TABLE IF EXISTS Users;
 DROP TABLE IF EXISTS Product_Event;
 DROP TABLE IF EXISTS Product_Standard;
 DROP TABLE IF EXISTS Membership;
@@ -27,7 +28,19 @@ DROP TABLE IF EXISTS Consumables;
 DROP TABLE IF EXISTS Global;
 DROP TABLE IF EXISTS Enum;
 
--- 1. Consumables 테이블 (소모품)
+-- 1. Users 테이블 (사용자 정보)
+CREATE TABLE Users (
+    ID INT PRIMARY KEY AUTO_INCREMENT COMMENT '사용자 고유 ID',
+    Username VARCHAR(50) UNIQUE NOT NULL COMMENT '사용자명 (로그인 ID)',
+    Password VARCHAR(255) NOT NULL COMMENT '비밀번호',
+    Role varchar(20) NOT NULL COMMENT '사용자 역할',
+    Access_Token VARCHAR(500) NULL COMMENT 'JWT 액세스 토큰',
+    Refresh_Token VARCHAR(500) NULL COMMENT 'JWT 리프레시 토큰',
+    Token_Expires_At TIMESTAMP NULL COMMENT '토큰 만료 시간',
+    Last_Login_At TIMESTAMP NULL COMMENT '마지막 로그인 시간'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 정보 테이블';
+
+-- 2. Consumables 테이블 (소모품)
 CREATE TABLE Consumables (
     ID INT PRIMARY KEY COMMENT '소모품 고유 ID',
     `Release` INT COMMENT '활성/비활성 여부',
@@ -40,7 +53,7 @@ CREATE TABLE Consumables (
     Unit_Price INT COMMENT '단위별 원가'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='소모품 정보 테이블';
 
--- 2. Enum 테이블 (커스텀 자료형)
+-- 4. Enum 테이블 (커스텀 자료형)
 CREATE TABLE Enum (
     enum_type VARCHAR(50) COMMENT '열거형 타입명',
     id INT COMMENT '열거형 ID',
@@ -48,14 +61,14 @@ CREATE TABLE Enum (
     PRIMARY KEY (enum_type, id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='커스텀 열거형 정의 테이블';
 
--- 3. Global 테이블 (전역 설정)
+-- 5. Global 테이블 (전역 설정)
 CREATE TABLE Global (
     ID INT PRIMARY KEY COMMENT '설정 고유 ID',
     Doc_Price_Minute INT COMMENT '의사 인건비 (분당)',
     Aesthetician_Price_Minute INT COMMENT '관리사 인건비 (분당)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='전역 설정 테이블';
 
--- 4. Info_Event 테이블 (이벤트 정보)
+-- 6. Info_Event 테이블 (이벤트 정보)
 CREATE TABLE Info_Event (
     ID INT PRIMARY KEY COMMENT '이벤트 정보 고유 ID',
     `Release` INT COMMENT '활성/비활성 여부',
@@ -65,7 +78,7 @@ CREATE TABLE Info_Event (
     Precautions TEXT COMMENT '주의사항'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='이벤트 정보 테이블';
 
--- 5. Info_Membership 테이블 (멤버십 정보) - NEW
+-- 7. Info_Membership 테이블 (멤버십 정보) - NEW
 CREATE TABLE Info_Membership (
     ID INT PRIMARY KEY COMMENT '멤버십 정보 고유 ID',
     `Release` INT COMMENT '활성/비활성 여부',
@@ -75,7 +88,7 @@ CREATE TABLE Info_Membership (
     Precautions TEXT COMMENT '주의사항'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='멤버십 정보 테이블';
 
--- 6. Info_Standard 테이블 (표준 정보)
+-- 8. Info_Standard 테이블 (표준 정보)
 CREATE TABLE Info_Standard (
     ID INT PRIMARY KEY COMMENT '표준 정보 고유 ID',
     `Release` INT COMMENT '활성/비활성 여부',
@@ -85,7 +98,7 @@ CREATE TABLE Info_Standard (
     Precautions TEXT COMMENT '주의사항'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='표준 상품 정보 테이블';
 
--- 7. Membership 테이블 (멤버십 상품)
+-- 9. Membership 테이블 (멤버십 상품)
 CREATE TABLE Membership (
     ID INT PRIMARY KEY COMMENT '멤버십 상품 고유 ID',
     `Release` INT COMMENT '활성/비활성 여부',
@@ -104,7 +117,7 @@ CREATE TABLE Membership (
     Release_End_Date VARCHAR(20) COMMENT '판매 종료일'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='멤버십 상품 테이블';
 
--- 8. Procedure_Bundle 테이블 (시술 번들)
+-- 10. Procedure_Bundle 테이블 (시술 번들)
 CREATE TABLE Procedure_Bundle (
     GroupID INT COMMENT '그룹 ID',
     ID INT COMMENT '번들 ID',
@@ -117,7 +130,7 @@ CREATE TABLE Procedure_Bundle (
     PRIMARY KEY (GroupID, ID)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='시술 번들 테이블';
 
--- 9. Procedure_Class 테이블 (시술 분류)
+-- 11. Procedure_Class 테이블 (시술 분류)
 CREATE TABLE Procedure_Class (
     GroupID INT COMMENT '그룹 ID',
     ID INT COMMENT '분류 ID',
@@ -129,7 +142,7 @@ CREATE TABLE Procedure_Class (
     PRIMARY KEY (GroupID, ID)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='시술 분류 테이블';
 
--- 10. Procedure_Custom 테이블 (커스텀 시술) - NEW
+-- 12. Procedure_Custom 테이블 (커스텀 시술) - NEW
 CREATE TABLE Procedure_Custom (
     GroupID INT COMMENT '그룹 ID',
     ID INT COMMENT '커스텀 ID',
@@ -144,7 +157,7 @@ CREATE TABLE Procedure_Custom (
     PRIMARY KEY (GroupID, ID)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='커스텀 시술 테이블';
 
--- 11. Procedure_Element 테이블 (시술 요소)
+-- 13. Procedure_Element 테이블 (시술 요소)
 CREATE TABLE Procedure_Element (
     ID INT PRIMARY KEY COMMENT '시술 요소 고유 ID',
     `Release` INT COMMENT '활성/비활성 여부',
@@ -165,7 +178,7 @@ CREATE TABLE Procedure_Element (
     Price INT COMMENT '시술 가격'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='시술 요소 테이블';
 
--- 12. Procedure_Sequence 테이블 (시술 순서)
+-- 14. Procedure_Sequence 테이블 (시술 순서)
 CREATE TABLE Procedure_Sequence (
     GroupID INT COMMENT '그룹 ID',
     ID INT COMMENT '시퀀스 ID',
@@ -179,7 +192,7 @@ CREATE TABLE Procedure_Sequence (
     PRIMARY KEY (GroupID, ID)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='시술 순서 테이블';
 
--- 13. Product_Event 테이블 (이벤트 상품)
+-- 15. Product_Event 테이블 (이벤트 상품)
 CREATE TABLE Product_Event (
     ID INT PRIMARY KEY COMMENT '이벤트 상품 고유 ID',
     `Release` INT COMMENT '활성/비활성 여부',
@@ -200,7 +213,7 @@ CREATE TABLE Product_Event (
     Validity_Period INT COMMENT '유효기간 (일)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='이벤트 상품 테이블';
 
--- 14. Product_Standard 테이블 (표준 상품)
+-- 16. Product_Standard 테이블 (표준 상품)
 CREATE TABLE Product_Standard (
     ID INT PRIMARY KEY COMMENT '표준 상품 고유 ID',
     `Release` INT COMMENT '활성/비활성 여부',
@@ -223,5 +236,5 @@ CREATE TABLE Product_Standard (
 
 -- =================================
 -- 테이블 생성 완료
--- 총 14개 테이블
+-- 총 15개 테이블
 -- =================================

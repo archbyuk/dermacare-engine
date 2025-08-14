@@ -29,3 +29,4 @@ docker-compose.override.yml
 
 # MySQL volume (optional, if mounted locally)
 mysql_data/
+*.sql

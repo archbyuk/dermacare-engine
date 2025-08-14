@@ -79,6 +79,48 @@ def get_products(
                     product_data["Product_Name"] = None
                     product_data["Product_Description"] = None
                 
+                # 시술 이름 추가
+                procedure_names = []
+                
+                # 1. 단일 시술 (Element_ID)
+                if standard_product.Element_ID:
+                    element = db.query(ProcedureElement).filter(
+                        ProcedureElement.ID == standard_product.Element_ID
+                    ).first()
+                    if element:
+                        procedure_names.append(element.Name)
+                
+                # 2. 시술 묶음 (Bundle_ID)
+                elif standard_product.Bundle_ID:
+                    bundle_elements = db.query(ProcedureElement).join(
+                        ProcedureBundle, ProcedureElement.ID == ProcedureBundle.Element_ID
+                    ).filter(
+                        ProcedureBundle.GroupID == standard_product.Bundle_ID
+                    ).all()
+                    procedure_names.extend([elem.Name for elem in bundle_elements])
+                
+                # 3. 커스텀 (Custom_ID)
+                elif standard_product.Custom_ID:
+                    custom_elements = db.query(ProcedureElement).join(
+                        ProcedureCustom, ProcedureElement.ID == ProcedureCustom.Element_ID
+                    ).filter(
+                        ProcedureCustom.GroupID == standard_product.Custom_ID
+                    ).all()
+                    procedure_names.extend([elem.Name for elem in custom_elements])
+                
+                # 4. 시퀀스 (Sequence_ID)
+                elif standard_product.Sequence_ID:
+                    sequence_elements = db.query(ProcedureElement).join(
+                        ProcedureSequence, ProcedureElement.ID == ProcedureSequence.Element_ID
+                    ).filter(
+                        ProcedureSequence.GroupID == standard_product.Sequence_ID
+                    ).all()
+                    procedure_names.extend([elem.Name for elem in sequence_elements])
+                
+                # 시술 이름을 응답에 추가
+                product_data["procedure_names"] = procedure_names
+                product_data["procedure_count"] = len(procedure_names)
+                
                 # 상품 목록에 추가 (Standard 상품)
                 products.append(product_data)
         
@@ -117,6 +159,48 @@ def get_products(
                     # Event_Info_ID가 없는 경우
                     event_data["Product_Name"] = None
                     event_data["Product_Description"] = None
+                
+                # 시술 이름 추가 (Event 상품도 동일한 로직)
+                procedure_names = []
+                
+                # 1. 단일 시술 (Element_ID)
+                if event_product.Element_ID:
+                    element = db.query(ProcedureElement).filter(
+                        ProcedureElement.ID == event_product.Element_ID
+                    ).first()
+                    if element:
+                        procedure_names.append(element.Name)
+                
+                # 2. 시술 묶음 (Bundle_ID)
+                elif event_product.Bundle_ID:
+                    bundle_elements = db.query(ProcedureElement).join(
+                        ProcedureBundle, ProcedureElement.ID == ProcedureBundle.Element_ID
+                    ).filter(
+                        ProcedureBundle.GroupID == event_product.Bundle_ID
+                    ).all()
+                    procedure_names.extend([elem.Name for elem in bundle_elements])
+                
+                # 3. 커스텀 (Custom_ID)
+                elif event_product.Custom_ID:
+                    custom_elements = db.query(ProcedureElement).join(
+                        ProcedureCustom, ProcedureElement.ID == ProcedureCustom.Element_ID
+                    ).filter(
+                        ProcedureCustom.GroupID == event_product.Custom_ID
+                    ).all()
+                    procedure_names.extend([elem.Name for elem in custom_elements])
+                
+                # 4. 시퀀스 (Sequence_ID)
+                elif event_product.Sequence_ID:
+                    sequence_elements = db.query(ProcedureElement).join(
+                        ProcedureSequence, ProcedureElement.ID == ProcedureSequence.Element_ID
+                    ).filter(
+                        ProcedureSequence.GroupID == event_product.Sequence_ID
+                    ).all()
+                    procedure_names.extend([elem.Name for elem in sequence_elements])
+                
+                # 시술 이름을 응답에 추가
+                event_data["procedure_names"] = procedure_names
+                event_data["procedure_count"] = len(procedure_names)
                 
                 # 상품 목록에 추가 (Event 상품)
                 products.append(event_data)
@@ -200,7 +284,7 @@ def get_product_detail(
             product_data["Standard_Start_Date"] = product.Standard_Start_Date       # 상품 노출 시작일
             product_data["Standard_End_Date"] = product.Standard_End_Date           # 상품 노출 종료일
             
-            # Standard 상품명 추가
+            # Standard 상품명과 설명 추가
             if hasattr(product, 'Standard_Info_ID') and product.Standard_Info_ID:
                 standard_info = db.query(InfoStandard).filter(
                     InfoStandard.ID == product.Standard_Info_ID
@@ -208,17 +292,19 @@ def get_product_detail(
                 
                 if standard_info:
                     product_data["Product_Name"] = standard_info.Product_Standard_Name
-                
+                    product_data["Product_Description"] = standard_info.Product_Standard_Description
                 else:
                     product_data["Product_Name"] = None
+                    product_data["Product_Description"] = None
             else:
                 product_data["Product_Name"] = None
+                product_data["Product_Description"] = None
         
         elif product_type == "event":
             product_data["Event_Start_Date"] = product.Event_Start_Date             # 이벤트 시작일
             product_data["Event_End_Date"] = product.Event_End_Date                 # 이벤트 종료일
             
-            # Event 상품명 추가
+            # Event 상품명과 설명 추가
             if hasattr(product, 'Event_Info_ID') and product.Event_Info_ID:
                 event_info = db.query(InfoEvent).filter(
                     InfoEvent.ID == product.Event_Info_ID
@@ -226,10 +312,13 @@ def get_product_detail(
                 
                 if event_info:
                     product_data["Product_Name"] = event_info.Event_Name
+                    product_data["Product_Description"] = event_info.Event_Description
                 else:
                     product_data["Product_Name"] = None
+                    product_data["Product_Description"] = None
             else:
                 product_data["Product_Name"] = None
+                product_data["Product_Description"] = None
         
         ### ==== Package_Type별 상세 정보 추가 ==== ###
         
@@ -575,9 +664,3 @@ def get_product_detail(
             status_code=500,
             detail=f"상품 상세 조회 중 오류 발생: {str(e)}"
         )
-    
-
-"""
-    Product: 
-
-"""
