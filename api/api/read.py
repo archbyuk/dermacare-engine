@@ -356,7 +356,8 @@ def get_product_detail(
                         "Name": element.Name,
                         "Cost_Time": element.Cost_Time,
                         "Plan_State": element.Plan_State,
-                        "Plan_Count": element.Plan_Count
+                        "Plan_Count": element.Plan_Count,
+                        "Element_Cost": element.Price  # 단일시술 가격 정보 추가
                     }
                 
                 else:   # 단일시술에 포함된 데이터들을 찾을 수 없을 경우 (예외처리)
@@ -405,6 +406,7 @@ def get_product_detail(
                                         "Cost_Time": element.Cost_Time,
                                         "Plan_State": element.Plan_State,
                                         "Plan_Count": element.Plan_Count,
+                                        "Element_Cost": element.Price  # 번들 내 Element 가격 정보 추가
                                     }
                                 })
                             
@@ -430,7 +432,8 @@ def get_product_detail(
                                     "Name": element.Name,
                                     "Cost_Time": element.Cost_Time,
                                     "Plan_State": element.Plan_State,
-                                    "Plan_Count": element.Plan_Count
+                                    "Plan_Count": element.Plan_Count,
+                                    "Element_Cost": element.Price  # 번들 내 Element 가격 정보 추가
                                 }
                             })
                         
@@ -494,7 +497,8 @@ def get_product_detail(
                                         "Name": element.Name,
                                         "Cost_Time": element.Cost_Time,
                                         "Plan_State": element.Plan_State,
-                                        "Plan_Count": element.Plan_Count
+                                        "Plan_Count": element.Plan_Count,
+                                        "Element_Cost": element.Price  # 커스텀 내 Element 가격 정보 추가
                                     }
                                 })
                             
@@ -522,7 +526,8 @@ def get_product_detail(
                                     "Name": element.Name,
                                     "Cost_Time": element.Cost_Time,
                                     "Plan_State": element.Plan_State,
-                                    "Plan_Count": element.Plan_Count                                    
+                                    "Plan_Count": element.Plan_Count,
+                                    "Element_Cost": element.Price  # 커스텀 내 Element 가격 정보 추가
                                 }
                             })
                         
@@ -582,6 +587,7 @@ def get_product_detail(
                                 "Cost_Time": element.Cost_Time,
                                 "Plan_State": element.Plan_State,
                                 "Plan_Count": element.Plan_Count,
+                                "Element_Cost": element.Price  # 단일 Element의 가격 정보 추가
                             })
                         
                         else:   # 시퀀스에 포함된 Element의 정보를 찾을 수 없을 경우 (예외처리)
