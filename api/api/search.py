@@ -276,7 +276,8 @@ def search_products(
                             "Sell_Price": standard_product.Sell_Price,
                             "Original_Price": standard_product.Original_Price,
                             "Discount_Rate": standard_product.Discount_Rate,
-                            "Product_Name": None
+                            "Product_Name": None,
+                            "elements": []  # Element 정보 추가
                         }
                         
                         # Info 테이블에서 상품명 가져오기
@@ -287,6 +288,38 @@ def search_products(
                             
                             if standard_info:
                                 product_data["Product_Name"] = standard_info.Product_Standard_Name
+                        
+                        # Package_Type별 Element 시술명만 추가
+                        if standard_product.Package_Type == "단일시술" and standard_product.Element_ID:
+                            element = db.query(ProcedureElement).filter(
+                                ProcedureElement.ID == standard_product.Element_ID
+                            ).first()
+                            if element:
+                                product_data["elements"].append(element.Name)
+                        
+                        elif standard_product.Package_Type == "번들" and standard_product.Bundle_ID:
+                            bundle_elements = db.query(ProcedureElement.Name).join(
+                                ProcedureBundle, ProcedureElement.ID == ProcedureBundle.Element_ID
+                            ).filter(ProcedureBundle.GroupID == standard_product.Bundle_ID).all()
+                            
+                            for element in bundle_elements:
+                                product_data["elements"].append(element.Name)
+                        
+                        elif standard_product.Package_Type == "커스텀" and standard_product.Custom_ID:
+                            custom_elements = db.query(ProcedureElement.Name).join(
+                                ProcedureCustom, ProcedureElement.ID == ProcedureCustom.Element_ID
+                            ).filter(ProcedureCustom.GroupID == standard_product.Custom_ID).all()
+                            
+                            for element in custom_elements:
+                                product_data["elements"].append(element.Name)
+                        
+                        elif standard_product.Package_Type == "시퀀스" and standard_product.Sequence_ID:
+                            sequence_elements = db.query(ProcedureElement.Name).join(
+                                ProcedureSequence, ProcedureElement.ID == ProcedureSequence.Element_ID
+                            ).filter(ProcedureSequence.GroupID == standard_product.Sequence_ID).all()
+                            
+                            for element in sequence_elements:
+                                product_data["elements"].append(element.Name)
                         
                         standard_products.append(product_data)
                         
@@ -517,7 +550,8 @@ def search_products(
                             "Sell_Price": event_product.Sell_Price,
                             "Original_Price": event_product.Original_Price,
                             "Discount_Rate": event_product.Discount_Rate,
-                            "Product_Name": None
+                            "Product_Name": None,
+                            "elements": []  # Element 정보 추가
                         }
                         
                         # Info 테이블에서 상품명 가져오기
@@ -528,6 +562,38 @@ def search_products(
                             
                             if event_info:
                                 event_data["Product_Name"] = event_info.Event_Name
+                        
+                        # Package_Type별 Element 시술명만 추가
+                        if event_product.Package_Type == "단일시술" and event_product.Element_ID:
+                            element = db.query(ProcedureElement).filter(
+                                ProcedureElement.ID == event_product.Element_ID
+                            ).first()
+                            if element:
+                                event_data["elements"].append(element.Name)
+                        
+                        elif event_product.Package_Type == "번들" and event_product.Bundle_ID:
+                            bundle_elements = db.query(ProcedureElement.Name).join(
+                                ProcedureBundle, ProcedureElement.ID == ProcedureBundle.Element_ID
+                            ).filter(ProcedureBundle.GroupID == event_product.Bundle_ID).all()
+                            
+                            for element in bundle_elements:
+                                event_data["elements"].append(element.Name)
+                        
+                        elif event_product.Package_Type == "커스텀" and event_product.Custom_ID:
+                            custom_elements = db.query(ProcedureElement.Name).join(
+                                ProcedureCustom, ProcedureElement.ID == ProcedureCustom.Element_ID
+                            ).filter(ProcedureCustom.GroupID == event_product.Custom_ID).all()
+                            
+                            for element in custom_elements:
+                                event_data["elements"].append(element.Name)
+                        
+                        elif event_product.Package_Type == "시퀀스" and event_product.Sequence_ID:
+                            sequence_elements = db.query(ProcedureElement.Name).join(
+                                ProcedureSequence, ProcedureElement.ID == ProcedureSequence.Element_ID
+                            ).filter(ProcedureSequence.GroupID == event_product.Sequence_ID).all()
+                            
+                            for element in sequence_elements:
+                                event_data["elements"].append(element.Name)
                         
                         event_products.append(event_data)
                         
