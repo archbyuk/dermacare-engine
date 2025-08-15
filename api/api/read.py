@@ -82,8 +82,9 @@ def get_products(
                     product_data["Product_Description"] = None
                     product_data["Precautions"] = None
                 
-                # 시술 이름 추가
+                # 시술 이름과 Class_Type 추가
                 procedure_names = []
+                class_types = []
                 
                 # 1. 단일 시술 (Element_ID)
                 if standard_product.Element_ID:
@@ -92,6 +93,8 @@ def get_products(
                     ).first()
                     if element:
                         procedure_names.append(element.Name)
+                        if element.Class_Type:
+                            class_types.append(element.Class_Type)
                 
                 # 2. 시술 묶음 (Bundle_ID)
                 elif standard_product.Bundle_ID:
@@ -100,7 +103,10 @@ def get_products(
                     ).filter(
                         ProcedureBundle.GroupID == standard_product.Bundle_ID
                     ).all()
-                    procedure_names.extend([elem.Name for elem in bundle_elements])
+                    for elem in bundle_elements:
+                        procedure_names.append(elem.Name)
+                        if elem.Class_Type:
+                            class_types.append(elem.Class_Type)
                 
                 # 3. 커스텀 (Custom_ID)
                 elif standard_product.Custom_ID:
@@ -109,7 +115,10 @@ def get_products(
                     ).filter(
                         ProcedureCustom.GroupID == standard_product.Custom_ID
                     ).all()
-                    procedure_names.extend([elem.Name for elem in custom_elements])
+                    for elem in custom_elements:
+                        procedure_names.append(elem.Name)
+                        if elem.Class_Type:
+                            class_types.append(elem.Class_Type)
                 
                 # 4. 시퀀스 (Sequence_ID)
                 elif standard_product.Sequence_ID:
@@ -118,11 +127,16 @@ def get_products(
                     ).filter(
                         ProcedureSequence.GroupID == standard_product.Sequence_ID
                     ).all()
-                    procedure_names.extend([elem.Name for elem in sequence_elements])
+                    for elem in sequence_elements:
+                        procedure_names.append(elem.Name)
+                        if elem.Class_Type:
+                            class_types.append(elem.Class_Type)
                 
-                # 시술 이름을 응답에 추가
+                # 시술 이름과 Class_Type을 응답에 추가
                 product_data["procedure_names"] = procedure_names
                 product_data["procedure_count"] = len(procedure_names)
+                product_data["class_types"] = list(set(class_types))  # 중복 제거
+                product_data["class_type_count"] = len(set(class_types))
                 
                 # 상품 목록에 추가 (Standard 상품)
                 products.append(product_data)
@@ -166,8 +180,9 @@ def get_products(
                     event_data["Product_Description"] = None
                     event_data["Precautions"] = None
                 
-                # 시술 이름 추가 (Event 상품도 동일한 로직)
+                # 시술 이름과 Class_Type 추가 (Event 상품도 동일한 로직)
                 procedure_names = []
+                class_types = []
                 
                 # 1. 단일 시술 (Element_ID)
                 if event_product.Element_ID:
@@ -176,6 +191,8 @@ def get_products(
                     ).first()
                     if element:
                         procedure_names.append(element.Name)
+                        if element.Class_Type:
+                            class_types.append(element.Class_Type)
                 
                 # 2. 시술 묶음 (Bundle_ID)
                 elif event_product.Bundle_ID:
@@ -184,7 +201,10 @@ def get_products(
                     ).filter(
                         ProcedureBundle.GroupID == event_product.Bundle_ID
                     ).all()
-                    procedure_names.extend([elem.Name for elem in bundle_elements])
+                    for elem in bundle_elements:
+                        procedure_names.append(elem.Name)
+                        if elem.Class_Type:
+                            class_types.append(elem.Class_Type)
                 
                 # 3. 커스텀 (Custom_ID)
                 elif event_product.Custom_ID:
@@ -193,7 +213,10 @@ def get_products(
                     ).filter(
                         ProcedureCustom.GroupID == event_product.Custom_ID
                     ).all()
-                    procedure_names.extend([elem.Name for elem in custom_elements])
+                    for elem in custom_elements:
+                        procedure_names.append(elem.Name)
+                        if elem.Class_Type:
+                            class_types.append(elem.Class_Type)
                 
                 # 4. 시퀀스 (Sequence_ID)
                 elif event_product.Sequence_ID:
@@ -202,11 +225,16 @@ def get_products(
                     ).filter(
                         ProcedureSequence.GroupID == event_product.Sequence_ID
                     ).all()
-                    procedure_names.extend([elem.Name for elem in sequence_elements])
+                    for elem in sequence_elements:
+                        procedure_names.append(elem.Name)
+                        if elem.Class_Type:
+                            class_types.append(elem.Class_Type)
                 
-                # 시술 이름을 응답에 추가
+                # 시술 이름과 Class_Type을 응답에 추가
                 event_data["procedure_names"] = procedure_names
                 event_data["procedure_count"] = len(procedure_names)
+                event_data["class_types"] = list(set(class_types))  # 중복 제거
+                event_data["class_type_count"] = len(set(class_types))
                 
                 # 상품 목록에 추가 (Event 상품)
                 products.append(event_data)
