@@ -611,7 +611,8 @@ def get_product_detail(
                                         "Name": element.Name,
                                         "Cost_Time": element.Cost_Time,
                                         "Plan_State": element.Plan_State,
-                                        "Plan_Count": element.Plan_Count
+                                        "Plan_Count": element.Plan_Count,
+                                        "Element_Cost": bundle_item.Element_Cost
                                     })
                                 
                                 else:   # 시퀀스에 포함된 Element의 정보를 찾을 수 없을 경우 (예외처리)
@@ -643,7 +644,8 @@ def get_product_detail(
                                         "Plan_State": element.Plan_State,
                                         "Plan_Count": element.Plan_Count,
                                         "Custom_Count": custom_item.Custom_Count,
-                                        "Element_Limit": custom_item.Element_Limit
+                                        "Element_Limit": custom_item.Element_Limit,
+                                        "Element_Cost": custom_item.Element_Cost
                                     })
                                 
                                 else:   # 시퀀스에 포함된 Element의 정보를 찾을 수 없을 경우 (예외처리)
