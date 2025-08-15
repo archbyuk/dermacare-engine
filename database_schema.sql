@@ -169,7 +169,7 @@ CREATE TABLE Procedure_Element (
     description TEXT COMMENT '단일 시술 설명',
     Position_Type VARCHAR(50) COMMENT '시술자 타입',
     Cost_Time FLOAT COMMENT '소요 시간 (분)',
-    Plan_State BOOLEAN COMMENT '플랜 여부',
+    Plan_State INT COMMENT '플랜 여부 (0: False, 1: True, NULL: Unknown)',
     Plan_Count INT COMMENT '플랜 횟수',
     Consum_1_ID INT COMMENT '소모품 1 ID',
     Consum_1_Count INT COMMENT '소모품 1 개수',
@@ -210,7 +210,10 @@ CREATE TABLE Product_Event (
     Margin_Rate FLOAT COMMENT '마진율',
     Event_Start_Date VARCHAR(20) COMMENT '이벤트 시작일',
     Event_End_Date VARCHAR(20) COMMENT '이벤트 종료일',
-    Validity_Period INT COMMENT '유효기간 (일)'
+    Validity_Period INT COMMENT '유효기간 (일)',
+    VAT INT COMMENT '부가세',
+    Covered_Type VARCHAR(20) COMMENT '급여분류 (급여/비급여)',
+    Taxable_Type VARCHAR(20) COMMENT '과세분류 (과세/면세)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='이벤트 상품 테이블';
 
 -- 16. Product_Standard 테이블 (표준 상품)
@@ -231,7 +234,10 @@ CREATE TABLE Product_Standard (
     Margin_Rate FLOAT COMMENT '마진율',
     Standard_Start_Date VARCHAR(20) COMMENT '상품 노출 시작일',
     Standard_End_Date VARCHAR(20) COMMENT '상품 노출 종료일',
-    Validity_Period INT COMMENT '유효기간 (일)'
+    Validity_Period INT COMMENT '유효기간 (일)',
+    VAT INT COMMENT '부가세',
+    Covered_Type VARCHAR(20) COMMENT '급여분류 (급여/비급여)',
+    Taxable_Type VARCHAR(20) COMMENT '과세분류 (과세/면세)'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='표준 상품 테이블';
 
 -- =================================

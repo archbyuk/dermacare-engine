@@ -70,14 +70,17 @@ def get_products(
                     if standard_info:
                         product_data["Product_Name"] = standard_info.Product_Standard_Name
                         product_data["Product_Description"] = standard_info.Product_Standard_Description
+                        product_data["Precautions"] = standard_info.Precautions
                     else:
                         # Info 테이블에서 정보를 찾을 수 없는 경우 (경고만, 에러는 아님)
                         product_data["Product_Name"] = None
                         product_data["Product_Description"] = None
+                        product_data["Precautions"] = None
                 else:
                     # Standard_Info_ID가 없는 경우
                     product_data["Product_Name"] = None
                     product_data["Product_Description"] = None
+                    product_data["Precautions"] = None
                 
                 # 시술 이름 추가
                 procedure_names = []
@@ -151,14 +154,17 @@ def get_products(
                     if event_info:
                         event_data["Product_Name"] = event_info.Event_Name
                         event_data["Product_Description"] = event_info.Event_Description
+                        event_data["Precautions"] = event_info.Precautions
                     else:
                         # Info 테이블에서 정보를 찾을 수 없는 경우 (경고만, 에러는 아님)
                         event_data["Product_Name"] = None
                         event_data["Product_Description"] = None
+                        event_data["Precautions"] = None
                 else:
                     # Event_Info_ID가 없는 경우
                     event_data["Product_Name"] = None
                     event_data["Product_Description"] = None
+                    event_data["Precautions"] = None
                 
                 # 시술 이름 추가 (Event 상품도 동일한 로직)
                 procedure_names = []
@@ -276,7 +282,10 @@ def get_product_detail(
             "Sell_Price": product.Sell_Price,                   # 판매 가격 (정상가에 할인율이 적용된 실판매가)
             "Original_Price": product.Original_Price,           # 정상가 (원가가 아닌, 할인율에 정당성을 부여하기 위한 가격)
             "Discount_Rate": product.Discount_Rate,             # 할인율 (정상가에서 Discount_Rate만큼 할인이 되서 Sell_Price가 되는 구조)
-            "Validity_Period": product.Validity_Period          # 상품 유효기간
+            "Validity_Period": product.Validity_Period,         # 상품 유효기간
+            "VAT": product.VAT,                                 # 부가세
+            "Covered_Type": product.Covered_Type,               # 급여분류 (급여/비급여)
+            "Taxable_Type": product.Taxable_Type                # 과세분류 (과세/면세)
         }
         
         # Product_Type에 따른 상품 노출 기간 (Standard, Event)
@@ -293,9 +302,11 @@ def get_product_detail(
                 if standard_info:
                     product_data["Product_Name"] = standard_info.Product_Standard_Name
                     product_data["Product_Description"] = standard_info.Product_Standard_Description
+                    product_data["Precautions"] = standard_info.Precautions
                 else:
                     product_data["Product_Name"] = None
                     product_data["Product_Description"] = None
+                    product_data["Precautions"] = None
             else:
                 product_data["Product_Name"] = None
                 product_data["Product_Description"] = None
@@ -313,12 +324,15 @@ def get_product_detail(
                 if event_info:
                     product_data["Product_Name"] = event_info.Event_Name
                     product_data["Product_Description"] = event_info.Event_Description
+                    product_data["Precautions"] = event_info.Precautions
                 else:
                     product_data["Product_Name"] = None
                     product_data["Product_Description"] = None
+                    product_data["Precautions"] = None
             else:
                 product_data["Product_Name"] = None
                 product_data["Product_Description"] = None
+                product_data["Precautions"] = None
         
         ### ==== Package_Type별 상세 정보 추가 ==== ###
         
