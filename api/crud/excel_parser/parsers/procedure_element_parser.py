@@ -94,9 +94,14 @@ class ProcedureElementParser(AbstractParser):
             if non_null_mask.any():
                 df.loc[non_null_mask, 'Cost_Time'] = pd.to_numeric(df.loc[non_null_mask, 'Cost_Time'], errors='coerce')
         
-        # Boolean 컬럼 변환
+        # Plan_State 컬럼 처리 (boolean → INT 변환)
         if 'Plan_State' in df.columns:
+            # pandas <NA>를 None으로 변환
             df['Plan_State'] = df['Plan_State'].where(df['Plan_State'].notna(), None)
+            # None이 아닌 값만 숫자로 변환
+            non_null_mask = df['Plan_State'].notna()
+            if non_null_mask.any():
+                df.loc[non_null_mask, 'Plan_State'] = pd.to_numeric(df.loc[non_null_mask, 'Plan_State'], errors='coerce')
         
         return df
     
@@ -112,6 +117,16 @@ class ProcedureElementParser(AbstractParser):
             
             for index, row in df.iterrows():
                 try:
+                    # Plan_State 값 처리 (na, nan → None)
+                    plan_state = row.get('Plan_State')
+                    if pd.isna(plan_state) or str(plan_state).lower() in ['na', 'nan', 'none', '<na>']:
+                        plan_state = None
+                    elif plan_state is not None:
+                        try:
+                            plan_state = int(plan_state)
+                        except (ValueError, TypeError):
+                            plan_state = None
+                    
                     # ORM 객체 생성
                     element = ProcedureElement(
                         ID=row.get('ID'),
@@ -124,7 +139,7 @@ class ProcedureElementParser(AbstractParser):
                         description=row.get('description'),
                         Position_Type=row.get('Position_Type'),
                         Cost_Time=row.get('Cost_Time'),
-                        Plan_State=row.get('Plan_State'),
+                        Plan_State=plan_state,
                         Plan_Count=row.get('Plan_Count'),
                         Consum_1_ID=row.get('Consum_1_ID'),
                         Consum_1_Count=row.get('Consum_1_Count'),

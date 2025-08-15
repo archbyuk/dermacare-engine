@@ -15,7 +15,7 @@ class ProcedureElement(Base):
     description = Column(Text, comment='단일 시술 설명')
     Position_Type = Column(String(50), comment='시술자 타입')
     Cost_Time = Column(Float, comment='소요 시간 (분)')
-    Plan_State = Column(Boolean, comment='플랜 여부')
+    Plan_State = Column(Integer, comment='플랜 여부 (0: False, 1: True, NULL: Unknown)')
     Plan_Count = Column(Integer, comment='플랜 횟수')
     Consum_1_ID = Column(Integer, comment='소모품 1 ID')
     Consum_1_Count = Column(Integer, comment='소모품 1 개수')

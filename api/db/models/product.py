@@ -22,6 +22,9 @@ class ProductEvent(Base):
     Event_Start_Date = Column(String(20), comment='이벤트 시작일')
     Event_End_Date = Column(String(20), comment='이벤트 종료일')
     Validity_Period = Column(Integer, comment='유효기간 (일)')
+    VAT = Column(Integer, comment='부가세')
+    Covered_Type = Column(String(20), comment='급여분류 (급여/비급여)')
+    Taxable_Type = Column(String(20), comment='과세분류 (과세/면세)')
 
     def __repr__(self):
         return f"<ProductEvent(ID={self.ID}, Package_Type='{self.Package_Type}', Event_Start_Date={self.Event_Start_Date})>"
@@ -48,6 +51,9 @@ class ProductStandard(Base):
     Standard_Start_Date = Column(String(20), comment='상품 노출 시작일')
     Standard_End_Date = Column(String(20), comment='상품 노출 종료일')
     Validity_Period = Column(Integer, comment='유효기간 (일)')
+    VAT = Column(Integer, comment='부가세')
+    Covered_Type = Column(String(20), comment='급여분류 (급여/비급여)')
+    Taxable_Type = Column(String(20), comment='과세분류 (과세/면세)')
 
     def __repr__(self):
         return f"<ProductStandard(ID={self.ID}, Package_Type='{self.Package_Type}')>"

@@ -116,6 +116,9 @@ class ExcelParser:
             # 데이터 타입 변환
             selected_df = self.convert_data_types(selected_df, selected_columns, data_types)
             
+            # Release 컬럼이 1이 아닌 행 필터링
+            selected_df = self.filter_by_release(selected_df)
+            
             return selected_df
             
         except Exception as e:
@@ -139,7 +142,8 @@ class ExcelParser:
                 elif 'FLOAT' in data_type or 'DECIMAL' in data_type:
                     df[col_name] = pd.to_numeric(df[col_name], errors='coerce')
                 elif 'BOOL' in data_type:
-                    df[col_name] = df[col_name].astype('boolean')
+                    # 0, 1 값을 INT로 변환 (DB에서 INT 타입으로 저장)
+                    df[col_name] = pd.to_numeric(df[col_name], errors='coerce').astype('Int64')
                 elif 'VARCHAR' in data_type or 'TEXT' in data_type or 'STRING' in data_type:
                     df[col_name] = df[col_name].astype(str)
                     # 'nan' 문자열을 None으로 변환
@@ -150,4 +154,34 @@ class ExcelParser:
         except Exception as e:
             # 타입 변환 실패해도 원본 데이터는 유지
             print(f"데이터 타입 변환 중 오류 (무시하고 계속): {str(e)}")
+            return df
+    
+    def filter_by_release(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+            Release 컬럼이 0 또는 1인 행들만 유지
+            Release가 비어있거나 nan이면 해당 행을 제거
+        """
+        try:
+            if 'Release' not in df.columns:
+                # Release 컬럼이 없으면 필터링하지 않음
+                return df
+            
+            # Release 컬럼의 값 확인
+            release_col = df['Release']
+            
+            # 0 또는 1인 행들만 유지 (nan, 비어있는 값들 제거)
+            filtered_df = df[release_col.isin([0, 1])].copy()
+            
+            # 필터링 결과 로그
+            original_count = len(df)
+            filtered_count = len(filtered_df)
+            removed_count = original_count - filtered_count
+            
+            if removed_count > 0:
+                print(f"Release 필터링: {original_count}개 행 중 {removed_count}개 행 제거 (Release가 0 또는 1이 아님)")
+            
+            return filtered_df.reset_index(drop=True)
+            
+        except Exception as e:
+            print(f"Release 필터링 중 오류 (무시하고 계속): {str(e)}")
             return df
