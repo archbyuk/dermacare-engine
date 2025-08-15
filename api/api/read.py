@@ -294,7 +294,7 @@ def get_product_detail(
             product_data["Standard_End_Date"] = product.Standard_End_Date           # 상품 노출 종료일
             
             # Standard 상품명과 설명 추가
-            if hasattr(product, 'Standard_Info_ID') and product.Standard_Info_ID:
+            if product.Standard_Info_ID:
                 standard_info = db.query(InfoStandard).filter(
                     InfoStandard.ID == product.Standard_Info_ID
                 ).first()
@@ -310,6 +310,8 @@ def get_product_detail(
             else:
                 product_data["Product_Name"] = None
                 product_data["Product_Description"] = None
+                product_data["Precautions"] = None
+            
         
         elif product_type == "event":
             product_data["Event_Start_Date"] = product.Event_Start_Date             # 이벤트 시작일
