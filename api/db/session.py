@@ -1,9 +1,9 @@
-from sqlalchemy import create_engine, MetaData
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
+# 환경변수 로드
 load_dotenv()
 
 # 데이터베이스 URL 설정
@@ -28,17 +28,14 @@ engine = create_engine(
 # 세션 팩토리 생성
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base 클래스 생성
-Base = declarative_base()
-
-# 메타데이터
-metadata = MetaData()
-
 # 데이터베이스 세션 의존성
 def get_db():
-    """데이터베이스 세션을 생성하고 반환하는 의존성 함수"""
-    db = SessionLocal()
+    """ 데이터베이스 세션을 생성하고 반환하는 의존성 함수 """
+    db = SessionLocal() # 새로운 세션 생성
+    
     try:
-        yield db
+        yield db  # 세션을 API EndPoint에 전달
+    
     finally:
-        db.close()
+        db.close() # 요청 완료 후 세션 정리
+        

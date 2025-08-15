@@ -1,41 +1,45 @@
-# 실행할 개별 컨테이너 정의
 services:
   # MySQL 데이터베이스 컨테이너
   db:
     image: mysql:8.0
     restart: always
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
       MYSQL_DATABASE: ${DB_NAME}
-    ports:
-      - 3309:3306
     volumes:
       - mysql_data:/var/lib/mysql
+    ports:
+      - "3309:3306"
+    networks:
+      - dermacare-network
 
   # FastAPI 백엔드 서버 컨테이너
   api:
-    build: ./api
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    restart: always
     environment:
-      DB_USER: ${DB_USER}
-      DB_PASSWORD: ${DB_PASSWORD}
-      DB_HOST: db
-      DB_PORT: ${DB_PORT}
-      DB_NAME: ${DB_NAME}
-    volumes:
-      - ./api:/app
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_NAME=${DB_NAME}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DEBUG=False
     ports:
-      - "9000:8000"
+      - "0.0.0.0:9000:8000"  # 모든 IP에서 접근 허용
     depends_on:
       - db
+    networks:
+      - dermacare-network
 
-  # adminer 데이터베이스 관리 도구 컨테이너
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - "8080:8080"
-
-# MySQL 데이터를 로컬에 영구 저장
+# MySQL 데이터를 영구 저장
 volumes:
   mysql_data:
+
+# 네트워크 설정
+networks:
+  dermacare-network:
+    driver: bridge

@@ -1,208 +1,246 @@
--- DermaCare Database Schema
--- 시술 관리 시스템을 위한 데이터베이스 스키마
+-- =================================
+-- DermaCare Database Schema (Updated)
+-- 15개 테이블 구조 (사용자 인증 테이블 추가)
+-- =================================
 
--- Enum: 공통 코드 테이블 (타입별 Enum 값 저장)
-CREATE TABLE Enum (
-    ID INT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 ID',
-    `Release` BOOLEAN DEFAULT TRUE COMMENT '비/활성 여부',
-    Type VARCHAR(50) NOT NULL COMMENT 'enum 분류 (ex: ProcedureType)',
-    Code VARCHAR(100) NOT NULL COMMENT '실제 값',
-    Name VARCHAR(255) COMMENT '표시용 이름',
-    UNIQUE KEY unique_type_code (Type, Code)
-);
+-- 문자셋 설정 (한글 COMMENT 지원)
+SET NAMES utf8mb4;
+SET character_set_client = utf8mb4;
+SET character_set_connection = utf8mb4;
+SET character_set_database = utf8mb4;
+SET character_set_results = utf8mb4;
+SET character_set_server = utf8mb4;
 
--- Consumables: 시술에 사용되는 소모품 정보
+-- 기존 테이블 삭제 (의존성 순서 고려)
+DROP TABLE IF EXISTS Users;
+DROP TABLE IF EXISTS Product_Event;
+DROP TABLE IF EXISTS Product_Standard;
+DROP TABLE IF EXISTS Membership;
+DROP TABLE IF EXISTS Info_Event;
+DROP TABLE IF EXISTS Info_Membership;
+DROP TABLE IF EXISTS Info_Standard;
+DROP TABLE IF EXISTS Procedure_Sequence;
+DROP TABLE IF EXISTS Procedure_Custom;
+DROP TABLE IF EXISTS Procedure_Bundle;
+DROP TABLE IF EXISTS Procedure_Class;
+DROP TABLE IF EXISTS Procedure_Element;
+DROP TABLE IF EXISTS Consumables;
+DROP TABLE IF EXISTS Global;
+DROP TABLE IF EXISTS Enum;
+
+-- 1. Users 테이블 (사용자 정보)
+CREATE TABLE Users (
+    ID INT PRIMARY KEY AUTO_INCREMENT COMMENT '사용자 고유 ID',
+    Username VARCHAR(50) UNIQUE NOT NULL COMMENT '사용자명 (로그인 ID)',
+    Password VARCHAR(255) NOT NULL COMMENT '비밀번호',
+    Role varchar(20) NOT NULL COMMENT '사용자 역할',
+    Access_Token VARCHAR(500) NULL COMMENT 'JWT 액세스 토큰',
+    Refresh_Token VARCHAR(500) NULL COMMENT 'JWT 리프레시 토큰',
+    Token_Expires_At TIMESTAMP NULL COMMENT '토큰 만료 시간',
+    Last_Login_At TIMESTAMP NULL COMMENT '마지막 로그인 시간'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='사용자 정보 테이블';
+
+-- 2. Consumables 테이블 (소모품)
 CREATE TABLE Consumables (
-    ID INT AUTO_INCREMENT PRIMARY KEY COMMENT '소모품 고유 ID',
-    `Release` BOOLEAN DEFAULT TRUE COMMENT '비/활성 여부',
-    Name VARCHAR(255) NOT NULL COMMENT '소모품 이름',
-    Description TEXT COMMENT '소모품 설명',
-    Unit_Type VARCHAR(100) COMMENT '단위 (enum UnitType)',
+    ID INT PRIMARY KEY COMMENT '소모품 고유 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Name VARCHAR(255) COMMENT '소모품 이름',
+    Description TEXT NULL COMMENT '소모품 상세 설명',
+    Unit_Type VARCHAR(50) COMMENT '단위 타입 (cc, EA, 개 등)',
     I_Value INT COMMENT '정수값',
     F_Value FLOAT COMMENT '실수값',
-    Price INT COMMENT '소모품 구매 가격',
-    Unit_Price INT COMMENT '단위 기준 가격',
-    INDEX idx_unit_type (Unit_Type),
-    INDEX idx_release (`Release`)
-);
+    Price INT COMMENT '구매가격',
+    Unit_Price INT COMMENT '단위별 원가'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='소모품 정보 테이블';
 
--- Global: 짬통
+-- 4. Enum 테이블 (커스텀 자료형)
+CREATE TABLE Enum (
+    enum_type VARCHAR(50) COMMENT '열거형 타입명',
+    id INT COMMENT '열거형 ID',
+    name VARCHAR(255) COMMENT '열거형 이름',
+    PRIMARY KEY (enum_type, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='커스텀 열거형 정의 테이블';
+
+-- 5. Global 테이블 (전역 설정)
 CREATE TABLE Global (
-    ID INT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 ID',
-    Doc_Price_Minute INT COMMENT '의사 인건비 (분당)'
-);
+    ID INT PRIMARY KEY COMMENT '설정 고유 ID',
+    Doc_Price_Minute INT COMMENT '의사 인건비 (분당)',
+    Aesthetician_Price_Minute INT COMMENT '관리사 인건비 (분당)'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='전역 설정 테이블';
 
--- Procedure_Element: 단일 시술 상세 정보 테이블
-CREATE TABLE Procedure_Element (
-    ID INT AUTO_INCREMENT PRIMARY KEY COMMENT '단일 시술 ID',
-    `Release` BOOLEAN DEFAULT TRUE COMMENT '비/활성 여부',
-    Class_Major VARCHAR(100) COMMENT '시술 대분류 (enum ClassMajor)',
-    Class_Sub VARCHAR(100) COMMENT '시술 중분류 (enum ClassSub)',
-    Class_Detail VARCHAR(100) COMMENT '시술 상세분류 (enum ClassDetail)',
-    Class_Type VARCHAR(100) COMMENT '시술 속성 (enum ClassType)',
-    Name VARCHAR(255) NOT NULL COMMENT '단일 시술 이름',
-    Description TEXT COMMENT '단일 시술 설명',
-    Position_Type VARCHAR(100) COMMENT '시술 행위자 (enum ProcedureType)',
-    Cost_Time INT COMMENT '소요 시간 (분)',
-    Plan_State BOOLEAN DEFAULT FALSE COMMENT '플랜 여부',
-    Plan_Count INT DEFAULT 1 COMMENT '플랜 횟수',
-    Consum_1_ID INT COMMENT '소모품 1 ID',
-    Consum_1_Count INT DEFAULT 1 COMMENT '소모품 1 개수',
-    Procedure_Cost INT COMMENT '시술 원가',
-    Base_Price INT COMMENT '기준 가격',
-    FOREIGN KEY (Consum_1_ID) REFERENCES Consumables(ID) ON DELETE SET NULL,
-    INDEX idx_class_major (Class_Major),
-    INDEX idx_class_sub (Class_Sub),
-    INDEX idx_position_type (Position_Type),
-    INDEX idx_release (`Release`)
-);
+-- 6. Info_Event 테이블 (이벤트 정보)
+CREATE TABLE Info_Event (
+    ID INT PRIMARY KEY COMMENT '이벤트 정보 고유 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Event_ID INT COMMENT '이벤트 ID',
+    Event_Name VARCHAR(255) COMMENT '이벤트 이름',
+    Event_Description TEXT COMMENT '이벤트 상세 설명',
+    Precautions TEXT COMMENT '주의사항'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='이벤트 정보 테이블';
 
--- Procedure_Bundle: 단일 시술을 묶은 번들 시술 정보
-CREATE TABLE Procedure_Bundle (
-    GroupID INT NOT NULL COMMENT '번들 그룹 ID',
-    ID INT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 ID',
-    `Release` BOOLEAN DEFAULT TRUE COMMENT '비/활성 여부',
-    Name VARCHAR(255) NOT NULL COMMENT '번들 이름',
-    Description TEXT COMMENT '번들 설명',
-    Element_ID INT NOT NULL COMMENT '단일 시술 ID',
-    Element_Cost INT COMMENT '단일 시술 원가',
-    Price_Ratio FLOAT COMMENT '가격 비율',
-    FOREIGN KEY (Element_ID) REFERENCES Procedure_Element(ID) ON DELETE CASCADE,
-    INDEX idx_group_id (GroupID),
-    INDEX idx_element_id (Element_ID),
-    INDEX idx_release (`Release`)
-);
+-- 7. Info_Membership 테이블 (멤버십 정보) - NEW
+CREATE TABLE Info_Membership (
+    ID INT PRIMARY KEY COMMENT '멤버십 정보 고유 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Membership_ID INT COMMENT '멤버십 ID',
+    Membership_Name VARCHAR(255) COMMENT '멤버십 이름',
+    Membership_Description TEXT COMMENT '멤버십 상세 설명',
+    Precautions TEXT COMMENT '주의사항'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='멤버십 정보 테이블';
 
--- Procedure_Sequence: 번들 및 단일 시술 순서대로 나열한 시퀀스 정보
-CREATE TABLE Procedure_Sequence (
-    GroupID INT NOT NULL COMMENT '시퀀스 그룹 ID',
-    ID INT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 ID',
-    `Release` BOOLEAN DEFAULT TRUE COMMENT '비/활성 여부',
-    Step_Num INT NOT NULL COMMENT '시술 순서',
+-- 8. Info_Standard 테이블 (표준 정보)
+CREATE TABLE Info_Standard (
+    ID INT PRIMARY KEY COMMENT '표준 정보 고유 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Product_Standard_ID INT COMMENT '표준 상품 ID',
+    Product_Standard_Name VARCHAR(255) COMMENT '표준 상품 이름',
+    Product_Standard_Description TEXT COMMENT '표준 상품 상세 설명',
+    Precautions TEXT COMMENT '주의사항'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='표준 상품 정보 테이블';
+
+-- 9. Membership 테이블 (멤버십 상품)
+CREATE TABLE Membership (
+    ID INT PRIMARY KEY COMMENT '멤버십 상품 고유 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Membership_Info_ID INT COMMENT '멤버십 정보 ID',
+    Payment_Amount INT COMMENT '결제 금액',
+    Bonus_Point INT COMMENT '보너스 포인트',
+    Credit INT COMMENT '최종 적립금',
+    Discount_Rate FLOAT COMMENT '적용 할인율',
+    Package_Type VARCHAR(50) COMMENT '패키지 타입 (단일시술, 번들, 커스텀 등)',
     Element_ID INT COMMENT '단일 시술 ID',
-    Bundle_ID INT COMMENT '번들 ID',
+    Bundle_ID INT COMMENT '번들 시술 ID',
+    Custom_ID INT COMMENT '커스텀 시술 ID',
+    Sequence_ID INT COMMENT '시퀀스 시술 ID',
+    Validity_Period INT COMMENT '유효기간 (일)',
+    Release_Start_Date VARCHAR(20) COMMENT '판매 시작일',
+    Release_End_Date VARCHAR(20) COMMENT '판매 종료일'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='멤버십 상품 테이블';
+
+-- 10. Procedure_Bundle 테이블 (시술 번들)
+CREATE TABLE Procedure_Bundle (
+    GroupID INT COMMENT '그룹 ID',
+    ID INT COMMENT '번들 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Name VARCHAR(255) NULL COMMENT '번들 이름',
+    Description TEXT NULL COMMENT '번들 설명',
+    Element_ID INT COMMENT '단일 시술 ID',
+    Element_Cost INT COMMENT '시술 원가',
+    Price_Ratio FLOAT COMMENT '가격 비율',
+    PRIMARY KEY (GroupID, ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='시술 번들 테이블';
+
+-- 11. Procedure_Class 테이블 (시술 분류)
+CREATE TABLE Procedure_Class (
+    GroupID INT COMMENT '그룹 ID',
+    ID INT COMMENT '분류 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Class_Major VARCHAR(50) COMMENT '시술 대분류 (레이저, 초음파 등)',
+    Class_Sub VARCHAR(50) COMMENT '시술 중분류 (리팟, 젠틀맥스 등)',
+    Class_Detail VARCHAR(50) COMMENT '시술 상세분류 (안면 제모, 바디 제모 등)',
+    Class_Type VARCHAR(50) COMMENT '시술 속성 (제모, 쁘띠 등)',
+    PRIMARY KEY (GroupID, ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='시술 분류 테이블';
+
+-- 12. Procedure_Custom 테이블 (커스텀 시술) - NEW
+CREATE TABLE Procedure_Custom (
+    GroupID INT COMMENT '그룹 ID',
+    ID INT COMMENT '커스텀 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Name VARCHAR(255) COMMENT '커스텀 시술 이름',
+    Description TEXT COMMENT '커스텀 시술 설명',
+    Element_ID INT COMMENT '단일 시술 ID',
+    Custom_Count INT COMMENT '시술 횟수',
+    Element_Limit INT COMMENT '개별 횟수 제한',
+    Element_Cost INT COMMENT '시술 원가',
+    Price_Ratio FLOAT COMMENT '가격 비율',
+    PRIMARY KEY (GroupID, ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='커스텀 시술 테이블';
+
+-- 13. Procedure_Element 테이블 (시술 요소)
+CREATE TABLE Procedure_Element (
+    ID INT PRIMARY KEY COMMENT '시술 요소 고유 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Class_Major VARCHAR(50) COMMENT '시술 대분류',
+    Class_Sub VARCHAR(50) COMMENT '시술 중분류',
+    Class_Detail VARCHAR(50) COMMENT '시술 상세분류',
+    Class_Type VARCHAR(50) COMMENT '시술 속성',
+    Name VARCHAR(255) COMMENT '단일 시술 이름',
+    description TEXT COMMENT '단일 시술 설명',
+    Position_Type VARCHAR(50) COMMENT '시술자 타입',
+    Cost_Time FLOAT COMMENT '소요 시간 (분)',
+    Plan_State INT COMMENT '플랜 여부 (0: False, 1: True, NULL: Unknown)',
+    Plan_Count INT COMMENT '플랜 횟수',
+    Consum_1_ID INT COMMENT '소모품 1 ID',
+    Consum_1_Count INT COMMENT '소모품 1 개수',
+    Procedure_Level VARCHAR(50) COMMENT '시술 난이도 (매우쉬움, 쉬움, 보통, 어려움, 매우어려움)',
+    Procedure_Cost INT COMMENT '시술 원가',
+    Price INT COMMENT '시술 가격'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='시술 요소 테이블';
+
+-- 14. Procedure_Sequence 테이블 (시술 순서)
+CREATE TABLE Procedure_Sequence (
+    GroupID INT COMMENT '그룹 ID',
+    ID INT COMMENT '시퀀스 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Step_Num INT COMMENT '순서 번호',
+    Element_ID INT COMMENT '단일 시술 ID',
+    Bundle_ID INT COMMENT '번들 시술 ID',
+    Custom_ID INT COMMENT '커스텀 시술 ID',
     Procedure_Cost INT COMMENT '시술 원가',
     Price_Ratio FLOAT COMMENT '가격 비율',
-    FOREIGN KEY (Element_ID) REFERENCES Procedure_Element(ID) ON DELETE CASCADE,
-    FOREIGN KEY (Bundle_ID) REFERENCES Procedure_Bundle(ID) ON DELETE CASCADE,
-    INDEX idx_group_id (GroupID),
-    INDEX idx_step_num (Step_Num),
-    INDEX idx_element_id (Element_ID),
-    INDEX idx_bundle_id (Bundle_ID),
-    INDEX idx_release (`Release`)
-);
+    PRIMARY KEY (GroupID, ID)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='시술 순서 테이블';
 
--- Procedure_Info: 시술 상세 정보 테이블
--- Procedure_Info_ID는 Procedure_ID에 따라 다른 테이블 참조 (조건부 참조)
-CREATE TABLE Procedure_Info (
-    ID INT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 ID',
-    `Release` BOOLEAN DEFAULT TRUE COMMENT '비/활성 여부',
-    Procedure_ID INT NOT NULL COMMENT '어떤 시술(Procedure)을 설명하는지 가리키는 논리적 참조 (ID)',
-    Procedure_Name VARCHAR(255) NOT NULL COMMENT '시술 이름',
-    Procedure_Description TEXT COMMENT '시술 설명',
-    Precautions TEXT COMMENT '주의사항',
-    INDEX idx_procedure_id (Procedure_ID),
-    INDEX idx_release (`Release`)
-);
-
--- Procedure: 최종 시술 상품 테이블 (가격, 유효기간 포함)
--- Procedure_ID는 Package_Type에 따라 다른 테이블 참조 (조건부 참조)
-CREATE TABLE `Procedure_Product` (
-    ID INT AUTO_INCREMENT PRIMARY KEY COMMENT '고유 ID',
-    `Release` BOOLEAN DEFAULT TRUE COMMENT '비/활성 여부',
-    Package_Type VARCHAR(100) NOT NULL COMMENT '패키지 타입 (enum PackageType)',
-    Procedure_ID INT NOT NULL COMMENT '시술 ID (Package_Type에 따라 참조 대상 변경 - 로직 거쳐야 함)',
-    Procedure_Info_ID INT COMMENT '시술 정보 ID (Procedure_Info.ID 참조)',
-    Procedure_Cost INT COMMENT '원가',
-    Price INT COMMENT '정상가',
-    Sell_Price INT COMMENT '판매가',
-    Discount_Rate FLOAT DEFAULT 0.0 COMMENT '할인율',
-    Margin INT COMMENT '마진',
+-- 15. Product_Event 테이블 (이벤트 상품)
+CREATE TABLE Product_Event (
+    ID INT PRIMARY KEY COMMENT '이벤트 상품 고유 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Package_Type VARCHAR(50) COMMENT '패키지 타입',
+    Element_ID INT COMMENT '단일 시술 ID',
+    Bundle_ID INT COMMENT '번들 시술 ID',
+    Custom_ID INT COMMENT '커스텀 시술 ID',
+    Sequence_ID INT COMMENT '시퀀스 시술 ID',
+    Event_Info_ID INT COMMENT '이벤트 정보 ID',
+    Procedure_Cost INT COMMENT '시술 원가',
+    Sell_Price INT COMMENT '실제 판매가',
+    Discount_Rate FLOAT COMMENT '할인율',
+    Original_Price INT COMMENT '정상가',
+    Margin INT COMMENT '마진값',
     Margin_Rate FLOAT COMMENT '마진율',
+    Event_Start_Date VARCHAR(20) COMMENT '이벤트 시작일',
+    Event_End_Date VARCHAR(20) COMMENT '이벤트 종료일',
     Validity_Period INT COMMENT '유효기간 (일)',
-    FOREIGN KEY (Procedure_Info_ID) REFERENCES Procedure_Info(ID) ON DELETE SET NULL,
-    INDEX idx_package_type (Package_Type),
-    INDEX idx_procedure_id (Procedure_ID),
-    INDEX idx_release (`Release`)
-);
+    VAT INT COMMENT '부가세',
+    Covered_Type VARCHAR(20) COMMENT '급여분류 (급여/비급여)',
+    Taxable_Type VARCHAR(20) COMMENT '과세분류 (과세/면세)'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='이벤트 상품 테이블';
 
--- 기본 Enum 데이터 삽입 (실제 시술 분류에 맞게 수정)
-INSERT INTO Enum (Type, Code, Name) VALUES
--- ClassMajor (시술 대분류)
-('ClassMajor', '0', 'None'),
-('ClassMajor', '10', '레이저'),
-('ClassMajor', '20', '초음파'),
-('ClassMajor', '30', '고주파'),
-('ClassMajor', '40', '실리프팅'),
-('ClassMajor', '50', '주사'),
-('ClassMajor', '60', '필러'),
+-- 16. Product_Standard 테이블 (표준 상품)
+CREATE TABLE Product_Standard (
+    ID INT PRIMARY KEY COMMENT '표준 상품 고유 ID',
+    `Release` INT COMMENT '활성/비활성 여부',
+    Package_Type VARCHAR(50) COMMENT '패키지 타입',
+    Element_ID INT COMMENT '단일 시술 ID',
+    Bundle_ID INT COMMENT '번들 시술 ID',
+    Custom_ID INT COMMENT '커스텀 시술 ID',
+    Sequence_ID INT COMMENT '시퀀스 시술 ID',
+    Standard_Info_ID INT COMMENT '표준 정보 ID',
+    Procedure_Cost INT COMMENT '시술 원가',
+    Sell_Price INT COMMENT '실제 판매가',
+    Discount_Rate FLOAT COMMENT '할인율',
+    Original_Price INT COMMENT '정상가',
+    Margin INT COMMENT '마진값',
+    Margin_Rate FLOAT COMMENT '마진율',
+    Standard_Start_Date VARCHAR(20) COMMENT '상품 노출 시작일',
+    Standard_End_Date VARCHAR(20) COMMENT '상품 노출 종료일',
+    Validity_Period INT COMMENT '유효기간 (일)',
+    VAT INT COMMENT '부가세',
+    Covered_Type VARCHAR(20) COMMENT '급여분류 (급여/비급여)',
+    Taxable_Type VARCHAR(20) COMMENT '과세분류 (과세/면세)'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='표준 상품 테이블';
 
--- ClassSub (시술 중분류)
-('ClassSub', '0', 'None'),
-('ClassSub', '10', '리팟'),
-('ClassSub', '20', '젠틀맥스'),
-('ClassSub', '30', '아포지'),
-('ClassSub', '40', '피코슈어'),
-('ClassSub', '50', '헐리우드'),
-('ClassSub', '60', '엑셀'),
-('ClassSub', '70', '네오빔'),
-('ClassSub', '80', '시크릿'),
-('ClassSub', '90', 'CO2'),
-('ClassSub', '100', '울쎄라'),
-('ClassSub', '110', '슈링크'),
-('ClassSub', '120', '덴서티'),
-('ClassSub', '130', '리니어지'),
-('ClassSub', '140', '볼뉴머'),
-('ClassSub', '150', '튠페이스'),
-('ClassSub', '160', '인모드'),
-('ClassSub', '170', '브이로'),
-('ClassSub', '180', '민트실'),
-('ClassSub', '190', '슈퍼하이코'),
-('ClassSub', '200', '잼버실'),
-('ClassSub', '210', '리즈네'),
-('ClassSub', '220', '울트라콜'),
-('ClassSub', '230', '리쥬란힐러'),
-('ClassSub', '240', '리쥬란HB+'),
-('ClassSub', '250', '쥬베룩'),
-('ClassSub', '260', 'GPC'),
-('ClassSub', '270', 'DCA'),
-('ClassSub', '280', '보톡스'),
-('ClassSub', '290', '바디보톡스'),
-('ClassSub', '300', '레티젠'),
-('ClassSub', '310', '래디어스'),
-('ClassSub', '320', '페이스필러'),
-('ClassSub', '330', '레스틸렌'),
-('ClassSub', '340', '벨로테로'),
-('ClassSub', '350', '히알라제'),
-
--- ClassDetail (시술 상세분류)
-('ClassDetail', '0', 'None'),
-('ClassDetail', '10', '주름보톡스'),
-('ClassDetail', '20', '미간보톡스'),
-('ClassDetail', '30', '바디보톡스'),
-('ClassDetail', '40', '미세필러'),
-
--- ClassType (시술 속성)
-('ClassType', '0', 'None'),
-('ClassType', '10', '제모'),
-('ClassType', '20', '쁘띠'),
-('ClassType', '30', '제거'),
-('ClassType', '40', '색조'),
-('ClassType', '50', '리프팅'),
-
--- ProcedureType (시술 행위자)
-('ProcedureType', '0', 'None'),
-('ProcedureType', '10', '의사'),
-('ProcedureType', '20', '관리사'),
-
--- UnitType (단위 타입)
-('UnitType', '0', 'None'),
-('UnitType', '10', 'cc'),
-('UnitType', '20', 'EA'),
-('UnitType', '30', 'Shot'),
-
--- PackageType (패키지 타입)
-('PackageType', '0', 'None'),
-('PackageType', '10', '단일시술'),
-('PackageType', '20', '번들'),
-('PackageType', '30', '시퀀스');
+-- =================================
+-- 테이블 생성 완료
+-- 총 15개 테이블
+-- =================================

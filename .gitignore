@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
 *.egg
 *.egg-info/
 dist/
@@ -28,3 +29,4 @@ docker-compose.override.yml
 
 # MySQL volume (optional, if mounted locally)
 mysql_data/
+*.sql
