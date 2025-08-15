@@ -289,37 +289,49 @@ def search_products(
                             if standard_info:
                                 product_data["Product_Name"] = standard_info.Product_Standard_Name
                         
-                        # Package_Type별 Element 시술명만 추가
+                        # Package_Type별 Element Class_Type만 추가
                         if standard_product.Package_Type == "단일시술" and standard_product.Element_ID:
                             element = db.query(ProcedureElement).filter(
                                 ProcedureElement.ID == standard_product.Element_ID
                             ).first()
-                            if element:
-                                product_data["elements"].append(element.Name)
+                            if element and element.Class_Type:
+                                product_data["elements"].append(element.Class_Type)
                         
                         elif standard_product.Package_Type == "번들" and standard_product.Bundle_ID:
-                            bundle_elements = db.query(ProcedureElement.Name).join(
+                            bundle_elements = db.query(ProcedureElement.Class_Type).join(
                                 ProcedureBundle, ProcedureElement.ID == ProcedureBundle.Element_ID
-                            ).filter(ProcedureBundle.GroupID == standard_product.Bundle_ID).all()
+                            ).filter(
+                                ProcedureBundle.GroupID == standard_product.Bundle_ID,
+                                ProcedureElement.Class_Type.isnot(None)
+                            ).all()
                             
                             for element in bundle_elements:
-                                product_data["elements"].append(element.Name)
+                                if element.Class_Type:
+                                    product_data["elements"].append(element.Class_Type)
                         
                         elif standard_product.Package_Type == "커스텀" and standard_product.Custom_ID:
-                            custom_elements = db.query(ProcedureElement.Name).join(
+                            custom_elements = db.query(ProcedureElement.Class_Type).join(
                                 ProcedureCustom, ProcedureElement.ID == ProcedureCustom.Element_ID
-                            ).filter(ProcedureCustom.GroupID == standard_product.Custom_ID).all()
+                            ).filter(
+                                ProcedureCustom.GroupID == standard_product.Custom_ID,
+                                ProcedureElement.Class_Type.isnot(None)
+                            ).all()
                             
                             for element in custom_elements:
-                                product_data["elements"].append(element.Name)
+                                if element.Class_Type:
+                                    product_data["elements"].append(element.Class_Type)
                         
                         elif standard_product.Package_Type == "시퀀스" and standard_product.Sequence_ID:
-                            sequence_elements = db.query(ProcedureElement.Name).join(
+                            sequence_elements = db.query(ProcedureElement.Class_Type).join(
                                 ProcedureSequence, ProcedureElement.ID == ProcedureSequence.Element_ID
-                            ).filter(ProcedureSequence.GroupID == standard_product.Sequence_ID).all()
+                            ).filter(
+                                ProcedureSequence.GroupID == standard_product.Sequence_ID,
+                                ProcedureElement.Class_Type.isnot(None)
+                            ).all()
                             
                             for element in sequence_elements:
-                                product_data["elements"].append(element.Name)
+                                if element.Class_Type:
+                                    product_data["elements"].append(element.Class_Type)
                         
                         standard_products.append(product_data)
                         
@@ -563,37 +575,49 @@ def search_products(
                             if event_info:
                                 event_data["Product_Name"] = event_info.Event_Name
                         
-                        # Package_Type별 Element 시술명만 추가
+                        # Package_Type별 Element Class_Type만 추가
                         if event_product.Package_Type == "단일시술" and event_product.Element_ID:
                             element = db.query(ProcedureElement).filter(
                                 ProcedureElement.ID == event_product.Element_ID
                             ).first()
-                            if element:
-                                event_data["elements"].append(element.Name)
+                            if element and element.Class_Type:
+                                event_data["elements"].append(element.Class_Type)
                         
                         elif event_product.Package_Type == "번들" and event_product.Bundle_ID:
-                            bundle_elements = db.query(ProcedureElement.Name).join(
+                            bundle_elements = db.query(ProcedureElement.Class_Type).join(
                                 ProcedureBundle, ProcedureElement.ID == ProcedureBundle.Element_ID
-                            ).filter(ProcedureBundle.GroupID == event_product.Bundle_ID).all()
+                            ).filter(
+                                ProcedureBundle.GroupID == event_product.Bundle_ID,
+                                ProcedureElement.Class_Type.isnot(None)
+                            ).all()
                             
                             for element in bundle_elements:
-                                event_data["elements"].append(element.Name)
+                                if element.Class_Type:
+                                    event_data["elements"].append(element.Class_Type)
                         
                         elif event_product.Package_Type == "커스텀" and event_product.Custom_ID:
-                            custom_elements = db.query(ProcedureElement.Name).join(
+                            custom_elements = db.query(ProcedureElement.Class_Type).join(
                                 ProcedureCustom, ProcedureElement.ID == ProcedureCustom.Element_ID
-                            ).filter(ProcedureCustom.GroupID == event_product.Custom_ID).all()
+                            ).filter(
+                                ProcedureCustom.GroupID == event_product.Custom_ID,
+                                ProcedureElement.Class_Type.isnot(None)
+                            ).all()
                             
                             for element in custom_elements:
-                                event_data["elements"].append(element.Name)
+                                if element.Class_Type:
+                                    event_data["elements"].append(element.Class_Type)
                         
                         elif event_product.Package_Type == "시퀀스" and event_product.Sequence_ID:
-                            sequence_elements = db.query(ProcedureElement.Name).join(
+                            sequence_elements = db.query(ProcedureElement.Class_Type).join(
                                 ProcedureSequence, ProcedureElement.ID == ProcedureSequence.Element_ID
-                            ).filter(ProcedureSequence.GroupID == event_product.Sequence_ID).all()
+                            ).filter(
+                                ProcedureSequence.GroupID == event_product.Sequence_ID,
+                                ProcedureElement.Class_Type.isnot(None)
+                            ).all()
                             
                             for element in sequence_elements:
-                                event_data["elements"].append(element.Name)
+                                if element.Class_Type:
+                                    event_data["elements"].append(element.Class_Type)
                         
                         event_products.append(event_data)
                         
