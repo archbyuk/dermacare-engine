@@ -17,6 +17,7 @@ class ProcedureElement(Base):
     Cost_Time = Column(Float, comment='소요 시간 (분)')
     Plan_State = Column(Integer, comment='플랜 여부 (0: False, 1: True, NULL: Unknown)')
     Plan_Count = Column(Integer, comment='플랜 횟수')
+    Plan_Interval = Column(Integer, comment='시술 재방문 주기 (일)')
     Consum_1_ID = Column(Integer, comment='소모품 1 ID')
     Consum_1_Count = Column(Integer, comment='소모품 1 개수')
     Procedure_Level = Column(String(50), comment='시술 난이도 (매우쉬움, 쉬움, 보통, 어려움, 매우어려움)')
@@ -90,6 +91,7 @@ class ProcedureSequence(Base):
     Element_ID = Column(Integer, comment='단일 시술 ID')
     Bundle_ID = Column(Integer, comment='번들 시술 ID')
     Custom_ID = Column(Integer, comment='커스텀 시술 ID')
+    Sequence_Interval = Column(Integer, comment='재방문 주기 (일)')
     Procedure_Cost = Column(Integer, comment='시술 원가')
     Price_Ratio = Column(Float, comment='가격 비율')
 

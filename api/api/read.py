@@ -385,6 +385,7 @@ def get_product_detail(
                         "Cost_Time": element.Cost_Time,
                         "Plan_State": element.Plan_State,
                         "Plan_Count": element.Plan_Count,
+                        "Plan_Interval": element.Plan_Interval,  # 시술 재방문 주기 추가
                         "Element_Cost": element.Price  # 단일시술 가격 정보 추가
                     }
                 
@@ -434,6 +435,7 @@ def get_product_detail(
                                         "Cost_Time": element.Cost_Time,
                                         "Plan_State": element.Plan_State,
                                         "Plan_Count": element.Plan_Count,
+                                        "Plan_Interval": element.Plan_Interval,  # 시술 재방문 주기 추가
                                         "Element_Cost": element.Price  # 번들 내 Element 가격 정보 추가
                                     }
                                 })
@@ -461,6 +463,7 @@ def get_product_detail(
                                     "Cost_Time": element.Cost_Time,
                                     "Plan_State": element.Plan_State,
                                     "Plan_Count": element.Plan_Count,
+                                    "Plan_Interval": element.Plan_Interval,  # 시술 재방문 주기 추가
                                     "Element_Cost": element.Price  # 번들 내 Element 가격 정보 추가
                                 }
                             })
@@ -526,6 +529,7 @@ def get_product_detail(
                                         "Cost_Time": element.Cost_Time,
                                         "Plan_State": element.Plan_State,
                                         "Plan_Count": element.Plan_Count,
+                                        "Plan_Interval": element.Plan_Interval,  # 시술 재방문 주기 추가
                                         "Element_Cost": element.Price  # 커스텀 내 Element 가격 정보 추가
                                     }
                                 })
@@ -555,6 +559,7 @@ def get_product_detail(
                                     "Cost_Time": element.Cost_Time,
                                     "Plan_State": element.Plan_State,
                                     "Plan_Count": element.Plan_Count,
+                                    "Plan_Interval": element.Plan_Interval,  # 시술 재방문 주기 추가
                                     "Element_Cost": element.Price  # 커스텀 내 Element 가격 정보 추가
                                 }
                             })
@@ -615,6 +620,7 @@ def get_product_detail(
                                 "Cost_Time": element.Cost_Time,
                                 "Plan_State": element.Plan_State,
                                 "Plan_Count": element.Plan_Count,
+                                "Plan_Interval": element.Plan_Interval,  # 시술 재방문 주기 추가
                                 "Element_Cost": element.Price  # 단일 Element의 가격 정보 추가
                             })
                         
@@ -646,6 +652,7 @@ def get_product_detail(
                                         "Cost_Time": element.Cost_Time,
                                         "Plan_State": element.Plan_State,
                                         "Plan_Count": element.Plan_Count,
+                                        "Plan_Interval": element.Plan_Interval,  # 시술 재방문 주기 추가
                                         "Element_Cost": bundle_item.Element_Cost
                                     })
                                 
@@ -677,6 +684,7 @@ def get_product_detail(
                                         "Cost_Time": element.Cost_Time,
                                         "Plan_State": element.Plan_State,
                                         "Plan_Count": element.Plan_Count,
+                                        "Plan_Interval": element.Plan_Interval,  # 시술 재방문 주기 추가
                                         "Custom_Count": custom_item.Custom_Count,
                                         "Element_Limit": custom_item.Element_Limit,
                                         "Element_Cost": custom_item.Element_Cost
@@ -695,6 +703,12 @@ def get_product_detail(
                 # 시퀀스에 포함된 모든 Element들의 정보를 저장
                 if sequence_details:
                     product_data["sequence_details"] = sequence_details
+                    
+                    # 시퀀스 전체의 재방문 주기 정보 추가
+                    if sequence_list and len(sequence_list) > 0:
+                        # 첫 번째 시퀀스 항목에서 Sequence_Interval 가져오기
+                        first_sequence = sequence_list[0]
+                        product_data["sequence_interval"] = first_sequence.Sequence_Interval
                 
                 else:   # 시퀀스에 포함된 데이터들을 찾을 수 없을 경우 (예외처리)
                     raise HTTPException(status_code=404, detail="시퀀스에 포함된 시술 정보가 없습니다.")

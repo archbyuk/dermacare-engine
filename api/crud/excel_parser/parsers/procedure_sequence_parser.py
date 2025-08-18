@@ -53,7 +53,7 @@ class ProcedureSequenceParser(AbstractParser):
         
         # 숫자 컬럼 검증
         numeric_columns = ['GroupID', 'ID', 'Release', 'Step_Num', 'Element_ID', 
-                          'Bundle_ID', 'Procedure_Cost']
+                          'Bundle_ID', 'Sequence_Interval', 'Procedure_Cost']
         for col in numeric_columns:
             if col in df.columns:
                 non_null_mask = df[col].notna()
@@ -81,7 +81,7 @@ class ProcedureSequenceParser(AbstractParser):
         
         # 정수 컬럼들 정리
         int_columns = ['GroupID', 'ID', 'Release', 'Step_Num', 'Element_ID', 
-                      'Bundle_ID', 'Custom_ID', 'Procedure_Cost']
+                      'Bundle_ID', 'Custom_ID', 'Sequence_Interval', 'Procedure_Cost']
         for col in int_columns:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce')
@@ -125,6 +125,7 @@ class ProcedureSequenceParser(AbstractParser):
                         Element_ID=row.get('Element_ID'),
                         Bundle_ID=row.get('Bundle_ID'),
                         Custom_ID=row.get('Custom_ID'),
+                        Sequence_Interval=row.get('Sequence_Interval'),
                         Procedure_Cost=row.get('Procedure_Cost'),
                         Price_Ratio=row.get('Price_Ratio')
                     )

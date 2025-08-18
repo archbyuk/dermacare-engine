@@ -294,6 +294,7 @@ def search_products(
                             element = db.query(ProcedureElement).filter(
                                 ProcedureElement.ID == standard_product.Element_ID
                             ).first()
+                            print(f"DEBUG - Product ID: {standard_product.ID}, Element: {element.Name if element else 'None'}, Class_Type: {element.Class_Type if element else 'None'}")
                             if element and element.Class_Type:
                                 product_data["elements"].append(element.Class_Type)
                         
