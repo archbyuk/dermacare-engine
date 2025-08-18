@@ -42,7 +42,7 @@ class ProcedureElementParser(AbstractParser):
             errors.append(f"중복된 ID가 있습니다: {duplicated_ids}")
         
         # 숫자 컬럼 검증
-        numeric_columns = ['ID', 'Release', 'Plan_Count', 'Consum_1_ID', 
+        numeric_columns = ['ID', 'Release', 'Plan_Count', 'Plan_Interval', 'Consum_1_ID', 
                           'Consum_1_Count', 'Procedure_Cost', 'Price']
         for col in numeric_columns:
             if col in df.columns:
@@ -76,7 +76,7 @@ class ProcedureElementParser(AbstractParser):
             df['Name'] = df['Name'].fillna('Unknown Procedure')
         
         # 숫자 컬럼 타입 변환 (pandas <NA> 문제 해결)
-        numeric_columns = ['ID', 'Release', 'Plan_Count', 'Consum_1_ID', 
+        numeric_columns = ['ID', 'Release', 'Plan_Count', 'Plan_Interval', 'Consum_1_ID', 
                           'Consum_1_Count', 'Procedure_Cost', 'Price']
         for col in numeric_columns:
             if col in df.columns:
@@ -141,6 +141,7 @@ class ProcedureElementParser(AbstractParser):
                         Cost_Time=row.get('Cost_Time'),
                         Plan_State=plan_state,
                         Plan_Count=row.get('Plan_Count'),
+                        Plan_Interval=row.get('Plan_Interval'),
                         Consum_1_ID=row.get('Consum_1_ID'),
                         Consum_1_Count=row.get('Consum_1_Count'),
                         Procedure_Level=row.get('Procedure_Level'),

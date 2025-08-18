@@ -171,6 +171,7 @@ CREATE TABLE Procedure_Element (
     Cost_Time FLOAT COMMENT '소요 시간 (분)',
     Plan_State INT COMMENT '플랜 여부 (0: False, 1: True, NULL: Unknown)',
     Plan_Count INT COMMENT '플랜 횟수',
+    Plan_Interval INT COMMENT '시술 재방문 주기 (일)',
     Consum_1_ID INT COMMENT '소모품 1 ID',
     Consum_1_Count INT COMMENT '소모품 1 개수',
     Procedure_Level VARCHAR(50) COMMENT '시술 난이도 (매우쉬움, 쉬움, 보통, 어려움, 매우어려움)',
@@ -187,6 +188,7 @@ CREATE TABLE Procedure_Sequence (
     Element_ID INT COMMENT '단일 시술 ID',
     Bundle_ID INT COMMENT '번들 시술 ID',
     Custom_ID INT COMMENT '커스텀 시술 ID',
+    Sequence_Interval INT COMMENT '재방문 주기 (일)',
     Procedure_Cost INT COMMENT '시술 원가',
     Price_Ratio FLOAT COMMENT '가격 비율',
     PRIMARY KEY (GroupID, ID)
