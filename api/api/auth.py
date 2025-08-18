@@ -22,6 +22,7 @@ class LoginResponse(BaseModel):
     access_token: str = None
     refresh_token: str = None
     role: str = None
+    username: str = None
 
 class RefreshRequest(BaseModel):
     refresh_token: str
@@ -107,7 +108,8 @@ def login(request: LoginRequest, response: Response, db: Session = Depends(get_d
             user_id=user.ID,
             access_token=access_token,  # body에도 포함 (호환성)
             refresh_token=refresh_token,  # body에도 포함 (호환성)
-            role=user.Role
+            role=user.Role,
+            username=user.Username
         )
         
     except HTTPException:
@@ -157,7 +159,8 @@ def refresh_token(request: RefreshRequest, response: Response, db: Session = Dep
             user_id=user.ID,
             access_token=access_token,
             refresh_token=user.Refresh_Token,  # 기존 리프레시 토큰 유지
-            role=user.Role
+            role=user.Role,
+            username=user.Username
         )
         
     except HTTPException:
