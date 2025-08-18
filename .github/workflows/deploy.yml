@@ -19,6 +19,18 @@ jobs:
         sudo systemctl start docker
         sudo systemctl enable docker
         
+    - name: Create environment file
+      run: |
+        cd ${{ github.workspace }}
+        cat > .env << EOF
+        DB_USER=${{ secrets.DB_USER }}
+        DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+        DB_HOST=${{ secrets.DB_HOST }}
+        DB_PORT=${{ secrets.DB_PORT }}
+        DB_NAME=${{ secrets.DB_NAME }}
+        JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
+        EOF
+        
     - name: Deploy with Docker Compose
       run: |
         cd ${{ github.workspace }}
