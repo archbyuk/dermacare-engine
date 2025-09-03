@@ -5,8 +5,7 @@
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, or_, desc, asc
-from typing import List, Optional, Dict, Any
+from sqlalchemy import desc
 
 from db.session import get_db
 from db import (
@@ -30,7 +29,7 @@ read_router = APIRouter(
 @read_router.get("/products")
 def get_products(
     page: int = Query(1, ge=1, description="페이지 번호"),
-    page_size: int = Query(30, ge=1, le=1000, description="페이지 크기"),
+    page_size: int = Query(30, ge=1, le=200000, description="페이지 크기"),
     product_type: str = Query("all", description="상품 타입 (all/standard/event)"),
     db: Session = Depends(get_db)
 ):

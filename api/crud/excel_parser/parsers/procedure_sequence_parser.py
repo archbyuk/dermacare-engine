@@ -116,18 +116,26 @@ class ProcedureSequenceParser(AbstractParser):
                         skipped_count += 1
                         continue
                     
+                    # NaN 값을 None으로 변환
+                    def safe_get(row, key):
+                        value = row.get(key)
+                        if pd.isna(value):
+                            return None
+                        return value
+                    
                     # ORM 객체 생성
                     sequence = ProcedureSequence(
-                        GroupID=row.get('GroupID'),
-                        ID=row.get('ID'),
-                        Release=row.get('Release'),
-                        Step_Num=row.get('Step_Num'),
-                        Element_ID=row.get('Element_ID'),
-                        Bundle_ID=row.get('Bundle_ID'),
-                        Custom_ID=row.get('Custom_ID'),
-                        Sequence_Interval=row.get('Sequence_Interval'),
-                        Procedure_Cost=row.get('Procedure_Cost'),
-                        Price_Ratio=row.get('Price_Ratio')
+                        GroupID=safe_get(row, 'GroupID'),
+                        ID=safe_get(row, 'ID'),
+                        Release=safe_get(row, 'Release'),
+                        Name=safe_get(row, 'Name'),
+                        Step_Num=safe_get(row, 'Step_Num'),
+                        Element_ID=safe_get(row, 'Element_ID'),
+                        Bundle_ID=safe_get(row, 'Bundle_ID'),
+                        Custom_ID=safe_get(row, 'Custom_ID'),
+                        Sequence_Interval=safe_get(row, 'Sequence_Interval'),
+                        Procedure_Cost=safe_get(row, 'Procedure_Cost'),
+                        Price_Ratio=safe_get(row, 'Price_Ratio')
                     )
                     
                     # DB에 추가 (복합 PK로 REPLACE 방식)
@@ -140,7 +148,11 @@ class ProcedureSequenceParser(AbstractParser):
                         # 기존 레코드 업데이트
                         for key, value in row.items():
                             if hasattr(existing, key):
-                                setattr(existing, key, value)
+                                # NaN 값을 None으로 변환
+                                if pd.isna(value):
+                                    setattr(existing, key, None)
+                                else:
+                                    setattr(existing, key, value)
                     else:
                         # 새 레코드 추가
                         self.db.add(sequence)

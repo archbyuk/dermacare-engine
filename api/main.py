@@ -15,6 +15,7 @@ from api.read import read_router
 from api.sort import sort_router
 from api.filter import filter_router
 from api.auth import router as auth_router
+from api.admin_tables import global_router, consumables_router, elements_router, bundles_router, customs_router, sequences_router, products_router, membership_router
 
 app = FastAPI(
     title="DermaCare API",
@@ -39,6 +40,14 @@ app.include_router(read_router)
 app.include_router(sort_router)
 app.include_router(filter_router)
 app.include_router(auth_router)
+app.include_router(global_router)
+app.include_router(consumables_router)
+app.include_router(elements_router)
+app.include_router(bundles_router)
+app.include_router(customs_router)
+app.include_router(sequences_router)
+app.include_router(products_router)
+app.include_router(membership_router)
 
 @app.get("/")
 def root():
@@ -55,6 +64,14 @@ def root():
             "sort": "/sort",
             "filter": "/filter",
             "auth": "/auth",
+            "admin_global": "/admin/global",
+            "admin_consumables": "/admin/consumables",
+            "admin_elements": "/admin/elements",
+            "admin_bundles": "/admin/bundles",
+            "admin_customs": "/admin/customs",
+            "admin_sequences": "/admin/sequences",
+            "admin_products": "/admin/products",
+            "admin_membership": "/admin/membership",
             "docs": "/docs",
             "redoc": "/redoc"
         }
