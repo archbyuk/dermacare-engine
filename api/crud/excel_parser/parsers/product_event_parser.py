@@ -88,7 +88,7 @@ class ProductEventParser(AbstractParser):
         # 정수 컬럼들 정리
         int_columns = ['ID', 'Release', 'Element_ID', 'Bundle_ID', 'Custom_ID', 'Sequence_ID',
                       'Event_Info_ID', 'Procedure_Cost', 'Original_Price', 
-                      'Sell_Price', 'Margin', 'Validity_Period']
+                      'Sell_Price', 'Margin', 'Validity_Period', 'VAT']
         for col in int_columns:
             if col in df.columns:
                 print(f"DEBUG: 정수 컬럼 처리 중 - {col}")
@@ -116,7 +116,7 @@ class ProductEventParser(AbstractParser):
         df = self.data_cleaner.convert_date_columns_to_mysql_date(df, date_columns)
         
         # 문자열 컬럼들에서 nan 처리
-        string_columns = ['Package_Type']
+        string_columns = ['Package_Type', 'Procedure_Grade', 'Covered_Type', 'Taxable_Type']
         for col in string_columns:
             if col in df.columns:
                 print(f"DEBUG: 문자열 컬럼 처리 중 - {col}")
@@ -156,7 +156,11 @@ class ProductEventParser(AbstractParser):
                         Margin_Rate=row.get('Margin_Rate'),
                         Event_Start_Date=row.get('Event_Start_Date'),
                         Event_End_Date=row.get('Event_End_Date'),
-                        Validity_Period=row.get('Validity_Period')
+                        Validity_Period=row.get('Validity_Period'),
+                        VAT=row.get('VAT'),
+                        Procedure_Grade=row.get('Procedure_Grade'),
+                        Covered_Type=row.get('Covered_Type'),
+                        Taxable_Type=row.get('Taxable_Type')
                     )
                     
                     # DB에 추가 (REPLACE 방식)

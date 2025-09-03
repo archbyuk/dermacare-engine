@@ -46,7 +46,7 @@ class ConsumablesParser(AbstractParser):
             errors.append(f"중복된 ID가 있습니다: {duplicated_ids}")
         
         # 숫자 컬럼 검증
-        numeric_columns = ['ID', 'Release', 'I_Value', 'Price', 'Unit_Price']
+        numeric_columns = ['ID', 'Release', 'I_Value', 'Price', 'Unit_Price', 'VAT']
         for col in numeric_columns:
             if col in df.columns:
                 # NULL이 아닌 값들이 숫자인지 확인
@@ -82,7 +82,7 @@ class ConsumablesParser(AbstractParser):
             df['Name'] = df['Name'].fillna('Unknown')
         
         # 숫자 컬럼 타입 변환 (pandas <NA> 문제 해결)
-        numeric_columns = ['ID', 'Release', 'I_Value', 'Price', 'Unit_Price']
+        numeric_columns = ['ID', 'Release', 'I_Value', 'Price', 'Unit_Price', 'VAT']
         for col in numeric_columns:
             if col in df.columns:
                 # pandas <NA>를 None으로 변환 후 숫자 변환
@@ -97,6 +97,18 @@ class ConsumablesParser(AbstractParser):
             non_null_mask = df['F_Value'].notna()
             if non_null_mask.any():
                 df.loc[non_null_mask, 'F_Value'] = pd.to_numeric(df.loc[non_null_mask, 'F_Value'], errors='coerce')
+        
+        # Covered_Type 기본값 설정
+        if 'Covered_Type' in df.columns:
+            df['Covered_Type'] = df['Covered_Type'].fillna('비급여')
+        else:
+            df['Covered_Type'] = '비급여'
+        
+        # TaxableType 기본값 설정
+        if 'TaxableType' in df.columns:
+            df['TaxableType'] = df['TaxableType'].fillna('과세')
+        else:
+            df['TaxableType'] = '과세'
         
         return df
     
@@ -122,7 +134,10 @@ class ConsumablesParser(AbstractParser):
                         I_Value=row.get('I_Value'),
                         F_Value=row.get('F_Value'),
                         Price=row.get('Price'),
-                        Unit_Price=row.get('Unit_Price')
+                        Unit_Price=row.get('Unit_Price'),
+                        VAT=row.get('VAT'),
+                        TaxableType=row.get('TaxableType'),
+                        Covered_Type=row.get('Covered_Type', '비급여')  # 기본값 설정
                     )
                     
                     # DB에 추가 (REPLACE 방식)

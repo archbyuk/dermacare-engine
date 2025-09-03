@@ -208,5 +208,6 @@ def get_supported_files():
         "status": "success",
         "supported_files": supported_files,
         "total_count": len(supported_files),
-        "message": "현재 지원되는 Excel 파일 목록입니다."
+        "message": "현재 지원되는 Excel 파일 목록입니다. Product_Event.xlsx와 Product_Standard.xlsx 파일에는 Procedure_Grade 필드가 포함되어 있습니다.",
+        "note": "Product_Event.xlsx와 Product_Standard.xlsx 파일에는 시술 등급(Procedure_Grade) 필드가 추가로 포함되어 있습니다."
     }

@@ -73,18 +73,19 @@ class ProcedureBundleParser(AbstractParser):
         # 기본 공통 정리
         df = self.data_cleaner.clean_common_data(df)
         
+        # NaN 값을 None으로 변환 (모든 컬럼에 대해)
+        df = df.where(df.notna(), None)
+        
         # 숫자 컬럼 타입 변환 (pandas <NA> 문제 해결)
         numeric_columns = ['GroupID', 'ID', 'Release', 'Element_ID', 'Element_Cost']
         for col in numeric_columns:
             if col in df.columns:
-                df[col] = df[col].where(df[col].notna(), None)
                 non_null_mask = df[col].notna()
                 if non_null_mask.any():
                     df.loc[non_null_mask, col] = pd.to_numeric(df.loc[non_null_mask, col], errors='coerce')
         
         # Float 컬럼 변환
         if 'Price_Ratio' in df.columns:
-            df['Price_Ratio'] = df['Price_Ratio'].where(df['Price_Ratio'].notna(), None)
             non_null_mask = df['Price_Ratio'].notna()
             if non_null_mask.any():
                 df.loc[non_null_mask, 'Price_Ratio'] = pd.to_numeric(df.loc[non_null_mask, 'Price_Ratio'], errors='coerce')
@@ -107,16 +108,23 @@ class ProcedureBundleParser(AbstractParser):
                     if pd.isna(row.get('GroupID')) or pd.isna(row.get('ID')):
                         continue
                     
+                    # NaN 값을 None으로 변환
+                    def safe_get(row, key):
+                        value = row.get(key)
+                        if pd.isna(value):
+                            return None
+                        return value
+                    
                     # ORM 객체 생성
                     bundle = ProcedureBundle(
-                        GroupID=row.get('GroupID'),
-                        ID=row.get('ID'),
-                        Release=row.get('Release'),
-                        Name=row.get('Name'),
-                        Description=row.get('Description'),
-                        Element_ID=row.get('Element_ID'),
-                        Element_Cost=row.get('Element_Cost'),
-                        Price_Ratio=row.get('Price_Ratio')
+                        GroupID=safe_get(row, 'GroupID'),
+                        ID=safe_get(row, 'ID'),
+                        Release=safe_get(row, 'Release'),
+                        Name=safe_get(row, 'Name'),
+                        Description=safe_get(row, 'Description'),
+                        Element_ID=safe_get(row, 'Element_ID'),
+                        Element_Cost=safe_get(row, 'Element_Cost'),
+                        Price_Ratio=safe_get(row, 'Price_Ratio')
                     )
                     
                     # DB에 추가 (복합 PK로 REPLACE 방식)
@@ -129,7 +137,11 @@ class ProcedureBundleParser(AbstractParser):
                         # 기존 레코드 업데이트
                         for key, value in row.items():
                             if hasattr(existing, key):
-                                setattr(existing, key, value)
+                                # NaN 값을 None으로 변환
+                                if pd.isna(value):
+                                    setattr(existing, key, None)
+                                else:
+                                    setattr(existing, key, value)
                     else:
                         # 새 레코드 추가
                         self.db.add(bundle)

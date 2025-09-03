@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float
+from sqlalchemy import Column, Integer, String, Float, Index
 from ..base import Base
 
 class ProductEvent(Base):
@@ -25,6 +25,21 @@ class ProductEvent(Base):
     VAT = Column(Integer, comment='부가세')
     Covered_Type = Column(String(20), comment='급여분류 (급여/비급여)')
     Taxable_Type = Column(String(20), comment='과세분류 (과세/면세)')
+    Procedure_Grade = Column(String(50), comment='시술 등급')
+
+    # 인덱스 추가 - 연쇄 업데이트를 위한 핵심 인덱스
+    __table_args__ = (
+        Index('idx_event_release', 'Release'),
+        Index('idx_event_element_id', 'Element_ID'),    # 핵심 인덱스
+        Index('idx_event_bundle_id', 'Bundle_ID'),      # 핵심 인덱스
+        Index('idx_event_custom_id', 'Custom_ID'),      # 핵심 인덱스
+        Index('idx_event_sequence_id', 'Sequence_ID'),  # 핵심 인덱스
+        Index('idx_event_package_type', 'Package_Type'),
+        Index('idx_event_sell_price', 'Sell_Price'),
+        Index('idx_event_start_date', 'Event_Start_Date'),
+        Index('idx_event_end_date', 'Event_End_Date'),
+        Index('idx_event_procedure_grade', 'Procedure_Grade'),
+    )
 
     def __repr__(self):
         return f"<ProductEvent(ID={self.ID}, Package_Type='{self.Package_Type}', Event_Start_Date={self.Event_Start_Date})>"
@@ -54,6 +69,21 @@ class ProductStandard(Base):
     VAT = Column(Integer, comment='부가세')
     Covered_Type = Column(String(20), comment='급여분류 (급여/비급여)')
     Taxable_Type = Column(String(20), comment='과세분류 (과세/면세)')
+    Procedure_Grade = Column(String(50), comment='시술 등급')
+
+    # 인덱스 추가 - 연쇄 업데이트를 위한 핵심 인덱스
+    __table_args__ = (
+        Index('idx_standard_release', 'Release'),
+        Index('idx_standard_element_id', 'Element_ID'),    # 핵심 인덱스
+        Index('idx_standard_bundle_id', 'Bundle_ID'),      # 핵심 인덱스
+        Index('idx_standard_custom_id', 'Custom_ID'),      # 핵심 인덱스
+        Index('idx_standard_sequence_id', 'Sequence_ID'),  # 핵심 인덱스
+        Index('idx_standard_package_type', 'Package_Type'),
+        Index('idx_standard_sell_price', 'Sell_Price'),
+        Index('idx_standard_start_date', 'Standard_Start_Date'),
+        Index('idx_standard_end_date', 'Standard_End_Date'),
+        Index('idx_standard_procedure_grade', 'Procedure_Grade'),
+    )
 
     def __repr__(self):
         return f"<ProductStandard(ID={self.ID}, Package_Type='{self.Package_Type}')>"
