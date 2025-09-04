@@ -146,10 +146,16 @@ async def upload_multiple_excel(
             
             db.commit()
         
-        # 병렬 처리
+        # 배치 처리 (Vercel 타임아웃 방지)
         manager = ParsersManager(db)
-        tasks = [process_single_file(file, manager) for file in files]
-        results = await asyncio.gather(*tasks)
+        results = []
+        batch_size = 3  # 3개씩 처리
+        
+        for i in range(0, len(files), batch_size):
+            batch = files[i:i + batch_size]
+            batch_tasks = [process_single_file(file, manager) for file in batch]
+            batch_results = await asyncio.gather(*batch_tasks)
+            results.extend(batch_results)
         
         # 결과 분석
         success_count = sum(1 for r in results if r["status"] == "success")
