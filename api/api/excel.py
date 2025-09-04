@@ -90,7 +90,8 @@ async def upload_single_excel(
 
 @excel_router.post("/upload-multiple")
 async def upload_multiple_excel(
-    files: List[UploadFile] = File(...),
+    files: List[UploadFile] = File(None),
+    file_urls: str = Form(None),  # JSON 문자열로 받음
     clear_tables: bool = Form(False),
     db: Session = Depends(get_db)
 ):
@@ -103,7 +104,12 @@ async def upload_multiple_excel(
     - files: 업로드할 Excel 파일들
     - clear_tables: True일 경우 모든 테이블 데이터를 삭제 후 새로 삽입
     """
-    validate_excel_files(files)
+    # 입력 방식 검증
+    if files and file_urls:
+        raise HTTPException(status_code=400, detail="files와 file_urls 중 하나만 사용하세요")
+    
+    if not files and not file_urls:
+        raise HTTPException(status_code=400, detail="files 또는 file_urls가 필요합니다")
     
     try:
         cleared_counts = {}
@@ -146,16 +152,73 @@ async def upload_multiple_excel(
             
             db.commit()
         
-        # 배치 처리 (Vercel 타임아웃 방지)
-        manager = ParsersManager(db)
-        results = []
-        batch_size = 3  # 3개씩 처리
+        # 파일 처리 방식 분기
+        if files:
+            # 기존 방식: 직접 업로드된 파일 처리
+            validate_excel_files(files)
+            
+            # 배치 처리 (Vercel 타임아웃 방지)
+            manager = ParsersManager(db)
+            results = []
+            batch_size = 3  # 3개씩 처리
+            
+            for i in range(0, len(files), batch_size):
+                batch = files[i:i + batch_size]
+                batch_tasks = [process_single_file(file, manager) for file in batch]
+                batch_results = await asyncio.gather(*batch_tasks)
+                results.extend(batch_results)
         
-        for i in range(0, len(files), batch_size):
-            batch = files[i:i + batch_size]
-            batch_tasks = [process_single_file(file, manager) for file in batch]
-            batch_results = await asyncio.gather(*batch_tasks)
-            results.extend(batch_results)
+        else:
+            # 새로운 방식: Vercel Blob URL에서 파일 다운로드 후 처리
+            import json
+            import requests
+            
+            try:
+                print(f"DEBUG: file_urls 받음: {file_urls}")
+                file_urls_data = json.loads(file_urls)
+                print(f"DEBUG: 파싱된 file_urls_data: {file_urls_data}")
+                
+                manager = ParsersManager(db)
+                results = []
+                
+                for i, file_info in enumerate(file_urls_data):
+                    try:
+                        print(f"DEBUG: {i+1}/{len(file_urls_data)} 파일 처리 중: {file_info['name']}")
+                        
+                        # URL에서 파일 다운로드
+                        print(f"DEBUG: URL 다운로드 시도: {file_info['url']}")
+                        response = requests.get(file_info['url'])
+                        response.raise_for_status()
+                        print(f"DEBUG: 파일 다운로드 성공, 크기: {len(response.content)} bytes")
+                        
+                        # 파일 내용으로 파싱
+                        result = await manager.process_excel_file(
+                            file_info['name'], 
+                            response.content
+                        )
+                        
+                        results.append({
+                            "filename": file_info['name'],
+                            "status": "success",
+                            "result": result,
+                            "size_bytes": file_info['size']
+                        })
+                        print(f"DEBUG: 파일 파싱 성공: {file_info['name']}")
+                        
+                    except Exception as e:
+                        print(f"DEBUG: 파일 처리 실패 {file_info['name']}: {str(e)}")
+                        results.append({
+                            "filename": file_info['name'],
+                            "status": "failed",
+                            "error": str(e)
+                        })
+                        
+            except json.JSONDecodeError as e:
+                print(f"DEBUG: JSON 파싱 실패: {str(e)}")
+                raise HTTPException(status_code=400, detail="file_urls 형식이 올바르지 않습니다")
+            except Exception as e:
+                print(f"DEBUG: 전체 처리 실패: {str(e)}")
+                raise HTTPException(status_code=500, detail=f"URL 처리 중 오류: {str(e)}")
         
         # 결과 분석
         success_count = sum(1 for r in results if r["status"] == "success")
@@ -165,7 +228,7 @@ async def upload_multiple_excel(
             "status": "completed",
             "message": f"다중 파일 처리 완료 (성공: {success_count}, 실패: {failed_count})",
             "summary": {
-                "total_files": len(files),
+                "total_files": len(files) if files else len(file_urls_data),
                 "success_count": success_count,
                 "failed_count": failed_count
             },
