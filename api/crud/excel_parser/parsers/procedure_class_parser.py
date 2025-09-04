@@ -19,7 +19,7 @@ class ProcedureClassParser(AbstractParser):
     
     def validate_data(self, df: pd.DataFrame) -> Tuple[bool, List[str]]:
         """
-        Procedure_Class 테이블 데이터 검증
+        Procedure_Class 테이블 데이터 검증 (복합 PK 특성 고려)
         """
         errors = []
         
@@ -32,16 +32,13 @@ class ProcedureClassParser(AbstractParser):
         if errors:
             return False, errors
         
-        # 복합 PK 컬럼 검증
+        # 복합 PK 컬럼 검증 - NULL 값만 체크
         for col in ['GroupID', 'ID']:
             if df[col].isnull().any():
                 errors.append(f"{col} 컬럼에 NULL 값이 있습니다")
         
-        # 복합 PK 중복 확인
-        duplicated_mask = df[['GroupID', 'ID']].duplicated()
-        if duplicated_mask.any():
-            duplicated_pairs = df[duplicated_mask][['GroupID', 'ID']].values.tolist()
-            errors.append(f"중복된 (GroupID, ID) 조합이 있습니다: {duplicated_pairs}")
+        # 복합 PK 중복 확인은 제거 - 삽입 단계에서 처리
+        # (GroupID, ID) 조합의 중복은 복합 기본키의 특성상 허용되어야 함
         
         # 숫자 컬럼 검증
         numeric_columns = ['GroupID', 'ID', 'Release']
@@ -58,7 +55,7 @@ class ProcedureClassParser(AbstractParser):
     
     def clean_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Procedure_Class 데이터 정리
+        Procedure_Class 데이터 정리 (중복 제거 포함)
         """
         # 기본 공통 정리
         df = self.data_cleaner.clean_common_data(df)
@@ -69,47 +66,59 @@ class ProcedureClassParser(AbstractParser):
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors='coerce').astype('Int64')
         
+        # 복합 PK 중복 제거 (마지막 값 유지)
+        if 'GroupID' in df.columns and 'ID' in df.columns:
+            original_count = len(df)
+            df = df.drop_duplicates(subset=['GroupID', 'ID'], keep='last')
+            removed_count = original_count - len(df)
+            if removed_count > 0:
+                print(f"DEBUG: Procedure_Class에서 {removed_count}개의 중복된 (GroupID, ID) 조합을 제거했습니다.")
+        
         return df
     
     def insert_data(self, df: pd.DataFrame) -> Dict[str, Any]:
         """
-        Procedure_Class 테이블에 데이터 삽입 (복합 PK 처리)
+        Procedure_Class 테이블에 데이터 삽입 (복합 PK 처리 - UPSERT 방식)
         """
         try:
             total_rows = len(df)
             inserted_count = 0
+            updated_count = 0
             error_count = 0
             errors = []
             
             for index, row in df.iterrows():
                 try:
-                    # ORM 객체 생성
-                    proc_class = ProcedureClass(
-                        GroupID=row.get('GroupID'),
-                        ID=row.get('ID'),
-                        Release=row.get('Release'),
-                        Class_Major=row.get('Class_Major'),
-                        Class_Sub=row.get('Class_Sub'),
-                        Class_Detail=row.get('Class_Detail'),
-                        Class_Type=row.get('Class_Type')
-                    )
+                    group_id = row.get('GroupID')
+                    id_val = row.get('ID')
                     
-                    # DB에 추가 (복합 PK로 REPLACE 방식)
+                    # 기존 레코드 확인
                     existing = self.db.query(ProcedureClass).filter(
-                        ProcedureClass.GroupID == row.get('GroupID'),
-                        ProcedureClass.ID == row.get('ID')
+                        ProcedureClass.GroupID == group_id,
+                        ProcedureClass.ID == id_val
                     ).first()
                     
                     if existing:
                         # 기존 레코드 업데이트
-                        for key, value in row.items():
-                            if hasattr(existing, key):
-                                setattr(existing, key, value)
+                        existing.Release = row.get('Release')
+                        existing.Class_Major = row.get('Class_Major')
+                        existing.Class_Sub = row.get('Class_Sub')
+                        existing.Class_Detail = row.get('Class_Detail')
+                        existing.Class_Type = row.get('Class_Type')
+                        updated_count += 1
                     else:
                         # 새 레코드 추가
+                        proc_class = ProcedureClass(
+                            GroupID=group_id,
+                            ID=id_val,
+                            Release=row.get('Release'),
+                            Class_Major=row.get('Class_Major'),
+                            Class_Sub=row.get('Class_Sub'),
+                            Class_Detail=row.get('Class_Detail'),
+                            Class_Type=row.get('Class_Type')
+                        )
                         self.db.add(proc_class)
-                    
-                    inserted_count += 1
+                        inserted_count += 1
                     
                 except Exception as e:
                     error_count += 1
@@ -122,7 +131,7 @@ class ProcedureClassParser(AbstractParser):
             return self.result_helper.create_result_dict(
                 table_name=self.table_name,
                 total_rows=total_rows,
-                inserted_count=inserted_count,
+                inserted_count=inserted_count + updated_count,  # 총 처리된 행 수
                 error_count=error_count,
                 errors=errors if errors else None
             )
