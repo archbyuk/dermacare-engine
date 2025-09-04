@@ -14,7 +14,7 @@ from .utils import cascade_update_all_tables
 
 # 라우터 설정
 global_router = APIRouter(
-    prefix="/admin/global",
+    prefix="/global",
     tags=["Global Config"]
 )
 

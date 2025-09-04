@@ -19,7 +19,7 @@ from .utils import calculate_element_procedure_cost, cascade_update_by_sequence_
 
 # 라우터 설정
 sequences_router = APIRouter(
-    prefix="/admin/sequences",
+    prefix="/sequences",
     tags=["Sequences"]
 )
 

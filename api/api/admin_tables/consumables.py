@@ -16,7 +16,7 @@ from .utils import cascade_update_by_consumable, calculate_unit_price, calculate
 
 # 라우터 설정
 consumables_router = APIRouter(
-    prefix="/admin/consumables",
+    prefix="/consumables",
     tags=["Consumables"]
 )
 
