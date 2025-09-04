@@ -21,7 +21,7 @@ from db.models.consumables import Consumables
 
 # 라우터 설정
 products_router = APIRouter(
-    prefix="/admin/products",
+    prefix="/products",
     tags=["Products"]
 )
 

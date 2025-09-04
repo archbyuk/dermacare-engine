@@ -19,7 +19,7 @@ from .utils import calculate_element_procedure_cost, cascade_update_by_custom_gr
 
 # 라우터 설정
 customs_router = APIRouter(
-    prefix="/admin/customs",
+    prefix="/customs",
     tags=["Customs"]
 )
 

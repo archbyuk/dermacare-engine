@@ -19,7 +19,7 @@ from .utils import calculate_element_procedure_cost, cascade_update_by_element_o
 
 # 라우터 설정
 bundles_router = APIRouter(
-    prefix="/admin/bundles",
+    prefix="/bundles",
     tags=["Bundles"]
 )
 

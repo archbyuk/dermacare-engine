@@ -20,7 +20,7 @@ from .utils import cascade_update_membership_id
 
 # 라우터 설정
 membership_router = APIRouter(
-    prefix="/admin/membership",
+    prefix="/membership",
     tags=["Membership"]
 )
 
