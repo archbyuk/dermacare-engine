@@ -6,6 +6,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 from typing import Optional
 from pydantic import BaseModel, validator
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
@@ -203,18 +204,20 @@ async def get_elements_list(db: Session = Depends(get_db)):
     # 응답: Element ID, 이름, 분류, 시술자 타입, 원가 등 반환
     
     try:
-        elements = db.query(ProcedureElement).all()
+        # N+1 쿼리 문제 해결: LEFT JOIN을 사용하여 한 번의 쿼리로 모든 데이터 조회
+        elements_with_consumables = db.query(
+            ProcedureElement,
+            Consumables
+        ).outerjoin(
+            Consumables, 
+            and_(
+                Consumables.ID == ProcedureElement.Consum_1_ID,
+                Consumables.Release == 1
+            )
+        ).all()
         
-        # 각 Element에 대해 소모품 정보 조회
         element_responses = []
-        for element in elements:
-            consumable = None
-            if element.Consum_1_ID and element.Consum_1_ID != -1:
-                consumable = db.query(Consumables).filter(
-                    Consumables.ID == element.Consum_1_ID,
-                    Consumables.Release == 1
-                ).first()
-            
+        for element, consumable in elements_with_consumables:
             element_responses.append(
                 ElementResponse.from_orm(
                     element, 

@@ -387,19 +387,17 @@ def validate_procedure_reference(package_type: str, element_id: int = None, bund
 async def get_membership_list(db: Session = Depends(get_db)):
     """Membership 목록 조회"""
     try:
-        # 모든 Membership 조회 (Release 상태와 관계없이)
-        memberships = db.query(Membership).order_by(Membership.ID).all()
-        print(memberships)
+        # N+1 쿼리 문제 해결: LEFT JOIN을 사용하여 한 번의 쿼리로 모든 데이터 조회
+        memberships_with_info = db.query(
+            Membership,
+            InfoMembership
+        ).outerjoin(
+            InfoMembership,
+            InfoMembership.ID == Membership.Membership_Info_ID
+        ).order_by(Membership.ID).all()
         
         membership_responses = []
-        for membership in memberships:
-            # Info_Membership 정보 조회
-            info = None
-            if membership.Membership_Info_ID:
-                info = db.query(InfoMembership).filter(
-                    InfoMembership.ID == membership.Membership_Info_ID
-                ).first()
-            
+        for membership, info in memberships_with_info:
             info_response = InfoMembershipResponse.from_orm(info) if info else None
             membership_responses.append(
                 MembershipResponse.from_orm(membership, info_response)

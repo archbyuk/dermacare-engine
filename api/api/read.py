@@ -345,7 +345,7 @@ def get_product_detail(
             product_data["Event_End_Date"] = product.Event_End_Date                 # 이벤트 종료일
             
             # Event 상품명과 설명 추가
-            if hasattr(product, 'Event_Info_ID') and product.Event_Info_ID:
+            if product.Event_Info_ID:
                 event_info = db.query(InfoEvent).filter(
                     InfoEvent.ID == product.Event_Info_ID
                 ).first()
@@ -355,13 +355,14 @@ def get_product_detail(
                     product_data["Product_Description"] = event_info.Event_Description
                     product_data["Precautions"] = event_info.Precautions
                 else:
-                    product_data["Product_Name"] = None
-                    product_data["Product_Description"] = None
-                    product_data["Precautions"] = None
+                    # Info_Event에서 정보를 찾을 수 없는 경우 기본값 설정
+                    product_data["Product_Name"] = f"이벤트 상품 {product.ID}"
+                    product_data["Product_Description"] = "이벤트 상품 설명이 없습니다."
+                    product_data["Precautions"] = "주의사항이 없습니다."
             else:
-                product_data["Product_Name"] = None
-                product_data["Product_Description"] = None
-                product_data["Precautions"] = None
+                product_data["Product_Name"] = f"이벤트 상품 {product.ID}"
+                product_data["Product_Description"] = "이벤트 상품 설명이 없습니다."
+                product_data["Precautions"] = "주의사항이 없습니다."
         
         ### ==== Package_Type별 상세 정보 추가 ==== ###
         
@@ -697,7 +698,9 @@ def get_product_detail(
                         sequence_details.append(step_details)
                     
                     else:   # 시퀀스에 포함된 Element의 정보를 찾을 수 없을 경우 (예외처리)
-                        raise HTTPException(status_code=404, detail=f"시퀀스 내 시술 정보를 찾을 수 없습니다. (Element_ID: {sequence_item.Element_ID})")
+                        # 시퀀스에 포함된 Element의 정보가 없는 경우 빈 배열로 처리
+                        step_details["elements"] = []
+                        sequence_details.append(step_details)
                 
                 # 시퀀스에 포함된 모든 Element들의 정보를 저장
                 if sequence_details:
