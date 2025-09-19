@@ -7,6 +7,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from typing import Optional, List
 from pydantic import BaseModel, validator
@@ -346,32 +347,32 @@ async def get_bundle(group_id: int, db: Session = Depends(get_db)):
         if group_id <= 0:
             raise HTTPException(status_code=400, detail="Group ID는 0보다 커야 합니다.")
         
-        # 해당 GroupID의 모든 Bundle 조회 (Release 상태와 관계없이)
-        bundles = db.query(ProcedureBundle).filter(
+        # N+1 쿼리 문제 해결: LEFT JOIN을 사용하여 한 번의 쿼리로 모든 데이터 조회
+        bundles_with_details = db.query(
+            ProcedureBundle,
+            ProcedureElement,
+            Consumables
+        ).outerjoin(
+            ProcedureElement,
+            ProcedureElement.ID == ProcedureBundle.Element_ID
+        ).outerjoin(
+            Consumables,
+            and_(
+                Consumables.ID == ProcedureElement.Consum_1_ID,
+                Consumables.Release == 1
+            )
+        ).filter(
             ProcedureBundle.GroupID == group_id
         ).order_by(ProcedureBundle.ID).all()
         
-        if not bundles:
+        if not bundles_with_details:
             raise HTTPException(status_code=404, detail="Bundle을 찾을 수 없습니다.")
         
         # Bundle 요소들을 Element 상세 정보와 함께 구성
         bundle_elements = []
-        for bundle in bundles:
-            # Element 상세 정보 조회
-            element = db.query(ProcedureElement).filter(
-                ProcedureElement.ID == bundle.Element_ID
-            ).first()
-            
+        for bundle, element, consumable in bundles_with_details:
             element_detail = None
             if element:
-                # Element의 소모품 정보 조회
-                consumable = None
-                if element.Consum_1_ID and element.Consum_1_ID != -1:
-                    consumable = db.query(Consumables).filter(
-                        Consumables.ID == element.Consum_1_ID,
-                        Consumables.Release == 1
-                    ).first()
-                
                 element_detail = ElementDetailResponse.from_orm(
                     element,
                     consumable.Name if consumable else None,
@@ -383,7 +384,7 @@ async def get_bundle(group_id: int, db: Session = Depends(get_db)):
             )
         
         # 첫 번째 Bundle에서 그룹 정보 가져오기
-        first_bundle = bundles[0]
+        first_bundle = bundles_with_details[0][0]  # 첫 번째 튜플의 첫 번째 요소 (ProcedureBundle)
         bundle_response = BundleResponse(
             group_id=first_bundle.GroupID,
             name=first_bundle.Name,
