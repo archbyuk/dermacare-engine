@@ -153,7 +153,7 @@ class ElementDetailResponse(BaseModel):
 class BundleElementResponse(BaseModel):
     id: int
     group_id: int
-    element_id: int
+    element_id: Optional[int] = None  # NULL 허용
     element_cost: Optional[int] = None
     price_ratio: Optional[float] = None  # NULL 허용
     release: int = 1
@@ -331,9 +331,11 @@ async def get_bundles_list(db: Session = Depends(get_db)):
                     'elements': []
                 }
             
-            bundle_groups[bundle.GroupID]['elements'].append(
-                BundleElementResponse.from_orm(bundle)
-            )
+            # Element_ID가 있는 경우만 elements에 추가 (ID=1인 메타데이터 레코드 제외)
+            if bundle.Element_ID is not None:
+                bundle_groups[bundle.GroupID]['elements'].append(
+                    BundleElementResponse.from_orm(bundle)
+                )
         
         return list(bundle_groups.values())
     except Exception as e:
@@ -371,17 +373,19 @@ async def get_bundle(group_id: int, db: Session = Depends(get_db)):
         # Bundle 요소들을 Element 상세 정보와 함께 구성
         bundle_elements = []
         for bundle, element, consumable in bundles_with_details:
-            element_detail = None
-            if element:
-                element_detail = ElementDetailResponse.from_orm(
-                    element,
-                    consumable.Name if consumable else None,
-                    consumable.Unit_Type if consumable else None
+            # Element_ID가 있는 경우만 처리 (ID=1인 메타데이터 레코드 제외)
+            if bundle.Element_ID is not None:
+                element_detail = None
+                if element:
+                    element_detail = ElementDetailResponse.from_orm(
+                        element,
+                        consumable.Name if consumable else None,
+                        consumable.Unit_Type if consumable else None
+                    )
+                
+                bundle_elements.append(
+                    BundleElementResponse.from_orm(bundle, element_detail)
                 )
-            
-            bundle_elements.append(
-                BundleElementResponse.from_orm(bundle, element_detail)
-            )
         
         # 첫 번째 Bundle에서 그룹 정보 가져오기
         first_bundle = bundles_with_details[0][0]  # 첫 번째 튜플의 첫 번째 요소 (ProcedureBundle)
