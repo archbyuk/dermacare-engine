@@ -7,6 +7,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from typing import Optional, List, Union
 from pydantic import BaseModel, validator
@@ -375,12 +376,25 @@ def create_sequence_records(
 async def get_sequences_list(db: Session = Depends(get_db)):
     """Sequence 목록 조회 (GroupID별로 그룹화) - 상세 정보 포함"""
     try:
-        # 모든 Sequence 조회 (Release 상태와 관계없이)
-        sequences = db.query(ProcedureSequence).order_by(ProcedureSequence.GroupID, ProcedureSequence.Step_Num).all()
+        # N+1 쿼리 문제 해결: LEFT JOIN을 사용하여 한 번의 쿼리로 모든 데이터 조회
+        sequences_with_details = db.query(
+            ProcedureSequence,
+            ProcedureElement,
+            Consumables
+        ).outerjoin(
+            ProcedureElement,
+            ProcedureElement.ID == ProcedureSequence.Element_ID
+        ).outerjoin(
+            Consumables,
+            and_(
+                Consumables.ID == ProcedureElement.Consum_1_ID,
+                Consumables.Release == 1
+            )
+        ).order_by(ProcedureSequence.GroupID, ProcedureSequence.Step_Num).all()
         
         # GroupID별로 그룹화
         sequence_groups = {}
-        for sequence in sequences:
+        for sequence, element, consumable in sequences_with_details:
             if sequence.GroupID not in sequence_groups:
                 sequence_groups[sequence.GroupID] = {
                     'group_id': sequence.GroupID,
