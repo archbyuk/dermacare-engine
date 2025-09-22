@@ -27,9 +27,8 @@ jobs:
           cd /home/azureuser/dermacare-engine
           git pull origin main
           
-          # Docker 서비스 재시작 (Zero-downtime)
-          docker-compose build --no-cache
-          docker-compose up -d --force-recreate
+          # Docker 서비스 재시작
+          docker-compose down && docker-compose build --no-cache && docker-compose up -d
         EOF
         
     - name: Verify deployment
