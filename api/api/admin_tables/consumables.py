@@ -59,17 +59,17 @@ class ConsumableUpdateRequest(BaseModel):
 
 class ConsumableResponse(BaseModel):
     id: int
-    name: str
-    unit_price: float
-    unit_type: str
+    name: Optional[str] = None
+    unit_price: Optional[float] = None
+    unit_type: Optional[str] = None
     description: Optional[str] = None
-    release: int
-    price: int
+    release: Optional[int] = None
+    price: Optional[int] = None
     i_value: Optional[int] = None
     f_value: Optional[float] = None
-    vat: int
-    taxable_type: str
-    covered_type: str
+    vat: Optional[int] = None
+    taxable_type: Optional[str] = None
+    covered_type: Optional[str] = None
 
     class Config:
         from_attributes = True
