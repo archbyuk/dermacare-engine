@@ -10,10 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.health import health_router
 from api.excel import excel_router
-from api.search import search_router
-from api.read import read_router
-from api.sort import sort_router
-from api.filter import filter_router
+from read import read_router
 from api.auth import router as auth_router
 from api.admin_tables import global_router, consumables_router, elements_router, bundles_router, customs_router, sequences_router, products_router, membership_router
 
@@ -35,10 +32,7 @@ app.add_middleware(
 # 라우터 등록
 app.include_router(health_router)
 app.include_router(excel_router)
-app.include_router(search_router)
 app.include_router(read_router)
-app.include_router(sort_router)
-app.include_router(filter_router)
 app.include_router(auth_router)
 app.include_router(global_router)
 app.include_router(consumables_router)
@@ -59,10 +53,7 @@ def root():
         "endpoints": {
             "health": "/health",
             "excel": "/excel",
-            "search": "/search",
             "read": "/read",
-            "sort": "/sort",
-            "filter": "/filter",
             "auth": "/auth",
             "global": "/global",
             "consumables": "/consumables",
