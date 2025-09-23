@@ -10,7 +10,7 @@ from .endpoints.detail import router as detail_router
 # 메인 라우터 생성
 read_router = APIRouter(prefix="/read", tags=["Read"])
 
-# 하위 라우터들을 포함
+# 하위 라우터들을 포함 (순서 중요: 구체적인 경로가 먼저)
 read_router.include_router(list_router)     # 상품 전체 목록 조회 라우터
 read_router.include_router(detail_router)   # 특정 상품 상세 조회 라우터
 
