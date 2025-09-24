@@ -10,7 +10,7 @@ from sqlalchemy import desc
 from db.session import get_db
 from db.models.product import ProductEvent, ProductStandard
 from ..schema import ProductListResponse, PaginationInfo
-from ..services.list_service import build_standard_product_data, build_event_product_data, get_procedures_batch_optimized
+from ..services.list_service import build_standard_products_optimized, build_event_products_optimized
 
 router = APIRouter()
 
@@ -45,33 +45,9 @@ def get_products(
                 desc(ProductStandard.Standard_Start_Date)
             ).all()
             
-            # standard_products의 ID를 리스트로 변환
-            standard_ids = [p.ID for p in standard_products]
-            
-            # standard_ids를 파라미터로 하여 시술 정보 일괄 조회
-            standard_procedure_data = get_procedures_batch_optimized(db, standard_ids, "standard")
-
-            # get_procedures_batch_optimized 함수를 통해 시술 정보 일괄 조회 완료
-            # return 값: {key: {'procedure_names': ['시술1', '시술2'], 'class_types': []}}
-            
-            # 모든 standard_product를 순회하면서 build_standard_product_data 함수를 통해 상품 데이터 구성
-            for standard_product in standard_products:
-                standard_product_data = build_standard_product_data(
-                    standard_product, 
-                    db, 
-                    standard_procedure_data.get(standard_product.ID, {})   # ex) {"procedure_names": ["포텐자 모공", "디오레 피부재생"], "class_types": ["제모", "피부재생"]}
-                )
-                
-                # standard_product_data: {
-                #     "ID": 1,
-                #     "Product_Type": "standard",
-                #     "Package_Type": "패키지",
-                #     "Sell_Price": 100000,
-                #     "Original_Price": 100000,
-                # }
-
-                # products 리스트에 standard_product_data를 추가
-                products.append(standard_product_data)
+            # 통합된 최적화 함수 사용
+            standard_product_data = build_standard_products_optimized(standard_products, db)
+            products.extend(standard_product_data)
         
 
         if product_type in ["all", "event"]:
@@ -80,26 +56,9 @@ def get_products(
                 desc(ProductEvent.Event_Start_Date)
             ).all()
             
-            # event_products의 ID를 리스트로 변환
-            event_ids = [p.ID for p in event_products]
-
-            # event_ids를 파라미터로 하여 시술 정보 일괄 조회
-            event_procedure_data = get_procedures_batch_optimized(db, event_ids, "event")
-
-            # get_procedures_batch_optimized 함수를 통해 시술 정보 일괄 조회 완료
-            # return 값: {key: {'procedure_names': ['시술1', '시술2'], 'class_types': []}}
-            
-            # 모든 event_product를 순회하면서 build_event_product_data 함수를 통해 상품 데이터 구성
-            
-            for event_product in event_products:
-                event_product_data = build_event_product_data(
-                    event_product, 
-                    db, 
-                    event_procedure_data.get(event_product.ID, {})   # ex) {"procedure_names": ["포텐자 모공", "디오레 피부재생"], "class_types": ["제모", "피부재생"]}
-                )
-
-                # products 리스트에 event_product_data를 추가
-                products.append(event_product_data)
+            # 통합된 최적화 함수 사용
+            event_product_data = build_event_products_optimized(event_products, db)
+            products.extend(event_product_data)
         
 
         # 총 개수 조회

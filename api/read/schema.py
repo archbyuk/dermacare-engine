@@ -9,8 +9,34 @@ from typing import List, Optional, Union
 from datetime import datetime
 
 
-class ProductBase(BaseModel):
-    """상품 기본 정보"""
+# ========== 목록 조회용 스키마 (최적화된 버전) ==========
+
+class ProductListBase(BaseModel):
+    """상품 목록 조회용 기본 정보 - 최적화된 버전"""
+    ID: int
+    Product_Type: Optional[str] = None  # "standard" 또는 "event"
+    Package_Type: Optional[str] = None
+    Sell_Price: Optional[int] = None
+    Original_Price: Optional[int] = None
+    Product_Name: Optional[str] = None
+    class_types: List[str] = []
+    class_type_count: Optional[int] = 0
+
+
+class StandardProductList(ProductListBase):
+    """표준 상품 목록 정보 - 최적화된 버전"""
+    Product_Type: str = "standard"
+
+
+class EventProductList(ProductListBase):
+    """이벤트 상품 목록 정보 - 최적화된 버전"""
+    Product_Type: str = "event"
+
+
+# ========== 상세 조회용 스키마 (전체 정보) ==========
+
+class ProductDetailBase(BaseModel):
+    """상품 상세 조회용 기본 정보 - 전체 정보"""
     ID: int
     Product_Type: Optional[str] = None  # "standard" 또는 "event"
     Package_Type: Optional[str] = None
@@ -26,15 +52,15 @@ class ProductBase(BaseModel):
     class_type_count: Optional[int] = 0
 
 
-class StandardProduct(ProductBase):
-    """표준 상품 정보"""
+class StandardProductDetail(ProductDetailBase):
+    """표준 상품 상세 정보 - 전체 정보"""
     Product_Type: str = "standard"
     Standard_Start_Date: Optional[str] = None
     Standard_End_Date: Optional[str] = None
 
 
-class EventProduct(ProductBase):
-    """이벤트 상품 정보"""
+class EventProductDetail(ProductDetailBase):
+    """이벤트 상품 상세 정보 - 전체 정보"""
     Product_Type: str = "event"
     Event_Start_Date: Optional[str] = None
     Event_End_Date: Optional[str] = None
@@ -50,18 +76,18 @@ class PaginationInfo(BaseModel):
     total_pages: int
 
 class ProductListResponse(BaseModel):
-    """상품 목록 응답"""
+    """상품 목록 응답 - 최적화된 버전"""
     status: str
     message: str
-    data: List[Union[StandardProduct, EventProduct]]
+    data: List[Union[StandardProductList, EventProductList]]
     pagination: PaginationInfo
 
 
 class ProductDetailResponse(BaseModel):
-    """상품 상세 정보 응답"""
+    """상품 상세 정보 응답 - 전체 정보"""
     success: bool = True
     message: str = "상품 상세 정보 조회 성공"
-    product: Union[StandardProduct, EventProduct]
+    product: Union[StandardProductDetail, EventProductDetail]
 
 
 class ErrorResponse(BaseModel):
