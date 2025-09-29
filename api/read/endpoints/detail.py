@@ -19,6 +19,7 @@ router = APIRouter()
         클릭된 상품의 상세 정보를 조회합니다.
         해당 '상품'에 속한 모든 Element, Bundle, Sequence 정보를 전부 조회합니다.
 """
+
 # response_model=ProductDetailResponse
 @router.get("/products/{product_id}")
 def get_product_detail(
