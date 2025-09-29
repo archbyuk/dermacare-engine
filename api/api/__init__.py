@@ -5,12 +5,10 @@
 """
 
 from .health import health_router
-from .excel import excel_router
 from .admin_tables import global_router, consumables_router
 
 __all__ = [
     "health_router", 
-    "excel_router",
     "global_router",
     "consumables_router"
 ]

@@ -15,7 +15,7 @@ class Consumables(Base):
     Price = Column(Integer, comment='구매가격')
     Unit_Price = Column(Integer, comment='단위별 원가')
     VAT = Column(Integer, comment='부가세')
-    TaxableType = Column(String(50), comment='과세분류')
+    Taxable_Type = Column(String(50), comment='과세분류')
     Covered_Type = Column(String(50), comment='급여분류')
 
     # 인덱스 추가

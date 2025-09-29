@@ -361,10 +361,9 @@ def build_standard_products_optimized(standard_products, db: Session) -> List[Di
         # Product_Name 추가
         if standard_product.Standard_Info_ID and standard_product.Standard_Info_ID in standard_info_dict:
             product_data["Product_Name"] = standard_info_dict[standard_product.Standard_Info_ID]
-            print("존재하는 product_name:", product_data["Product_Name"])
         
         else:
-            product_data["Product_Name"] = f"시술 {standard_product.ID}"
+            product_data["Product_Name"] = f"Standard {standard_product.ID}"
         
         # 시술 정보 추가 (class_types만, 처음 3개만)
         procedure_data = procedure_result.get(standard_product.ID, {})
@@ -424,7 +423,7 @@ def build_event_products_optimized(event_products, db: Session) -> List[Dict[str
         if event_product.Event_Info_ID and event_product.Event_Info_ID in event_info_dict:
             product_data["Product_Name"] = event_info_dict[event_product.Event_Info_ID]
         else:
-            product_data["Product_Name"] = f"이벤트 {event_product.ID}"
+            product_data["Product_Name"] = f"Event {event_product.ID}"
         
         # 시술 정보 추가 (class_types만, 처음 3개만)
         procedure_data = procedure_result.get(event_product.ID, {})

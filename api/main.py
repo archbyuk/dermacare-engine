@@ -9,7 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.health import health_router
-from api.excel import excel_router
+from upload import upload_router
 from read import read_router
 from api.auth import router as auth_router
 from api.admin_tables import global_router, consumables_router, elements_router, bundles_router, customs_router, sequences_router, products_router, membership_router
@@ -31,7 +31,7 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(health_router)
-app.include_router(excel_router)
+app.include_router(upload_router)  # 새로운 구조
 app.include_router(read_router)
 app.include_router(auth_router)
 app.include_router(global_router)
@@ -52,7 +52,7 @@ def root():
         "description": "Excel 파일 업로드 및 파싱을 지원하는 시술 조회 시스템",
         "endpoints": {
             "health": "/health",
-            "excel": "/excel",
+            "upload": "/upload",
             "read": "/read",
             "auth": "/auth",
             "global": "/global",
