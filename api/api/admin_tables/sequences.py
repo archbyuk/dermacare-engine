@@ -9,12 +9,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from typing import Optional, List, Union
+from typing import Optional, List
 from pydantic import BaseModel, validator
 
 from db.session import get_db
 from db.models.procedure import ProcedureSequence, ProcedureElement, ProcedureBundle, ProcedureCustom
-from db.models.global_config import Global
 from db.models.consumables import Consumables
 from .utils import calculate_element_procedure_cost, cascade_update_by_sequence_group
 
@@ -442,7 +441,7 @@ async def get_sequences_list(db: Session = Depends(get_db)):
                                 price=consumable.Price,
                                 unit_price=consumable.Unit_Price,
                                 vat=consumable.VAT,
-                                taxable_type=consumable.TaxableType,
+                                taxable_type=consumable.Taxable_Type,
                                 covered_type=consumable.Covered_Type
                             )
                     
@@ -503,7 +502,7 @@ async def get_sequences_list(db: Session = Depends(get_db)):
                                     price=consumable.Price,
                                     unit_price=consumable.Unit_Price,
                                     vat=consumable.VAT,
-                                    taxable_type=consumable.TaxableType,
+                                    taxable_type=consumable.Taxable_Type,
                                     covered_type=consumable.Covered_Type
                                 )
                         
@@ -572,7 +571,7 @@ async def get_sequences_list(db: Session = Depends(get_db)):
                                     price=consumable.Price,
                                     unit_price=consumable.Unit_Price,
                                     vat=consumable.VAT,
-                                    taxable_type=consumable.TaxableType,
+                                    taxable_type=consumable.Taxable_Type,
                                     covered_type=consumable.Covered_Type
                                 )
                         
@@ -674,7 +673,7 @@ async def get_sequence(group_id: int, db: Session = Depends(get_db)):
                                 price=consumable.Price,
                                 unit_price=consumable.Unit_Price,
                                 vat=consumable.VAT,
-                                taxable_type=consumable.TaxableType,
+                                taxable_type=consumable.Taxable_Type,
                                 covered_type=consumable.Covered_Type
                             )
                     
@@ -735,7 +734,7 @@ async def get_sequence(group_id: int, db: Session = Depends(get_db)):
                                     price=consumable.Price,
                                     unit_price=consumable.Unit_Price,
                                     vat=consumable.VAT,
-                                    taxable_type=consumable.TaxableType,
+                                    taxable_type=consumable.Taxable_Type,
                                     covered_type=consumable.Covered_Type
                                 )
                         
@@ -804,7 +803,7 @@ async def get_sequence(group_id: int, db: Session = Depends(get_db)):
                                     price=consumable.Price,
                                     unit_price=consumable.Unit_Price,
                                     vat=consumable.VAT,
-                                    taxable_type=consumable.TaxableType,
+                                    taxable_type=consumable.Taxable_Type,
                                     covered_type=consumable.Covered_Type
                                 )
                         
@@ -1035,7 +1034,7 @@ async def update_sequence(group_id: int, sequence_data: SequenceUpdateRequest, d
                                     price=consumable.Price,
                                     unit_price=consumable.Unit_Price,
                                     vat=consumable.VAT,
-                                    taxable_type=consumable.TaxableType,
+                                    taxable_type=consumable.Taxable_Type,
                                     covered_type=consumable.Covered_Type
                                 )
                         
@@ -1085,7 +1084,7 @@ async def update_sequence(group_id: int, sequence_data: SequenceUpdateRequest, d
                                         price=consumable.Price,
                                         unit_price=consumable.Unit_Price,
                                         vat=consumable.VAT,
-                                        taxable_type=consumable.TaxableType,
+                                        taxable_type=consumable.Taxable_Type,
                                         covered_type=consumable.Covered_Type
                                     )
                             
@@ -1143,7 +1142,7 @@ async def update_sequence(group_id: int, sequence_data: SequenceUpdateRequest, d
                                         price=consumable.Price,
                                         unit_price=consumable.Unit_Price,
                                         vat=consumable.VAT,
-                                        taxable_type=consumable.TaxableType,
+                                        taxable_type=consumable.Taxable_Type,
                                         covered_type=consumable.Covered_Type
                                     )
                             
