@@ -217,147 +217,70 @@ def process_procedure_data(
 
     # 4. Sequence 시술 정보 일괄 조회: element Name, Class_Type 추가 완
     if sequence_ids:
-
-        # 변수 초기화
-        sequence_elements = []
-        sequence_bundles = []
-        sequence_customs = []
-        
-        # 1. 먼저 Procedure_Sequence에서 각 GroupID별로 어떤 ID가 있는지 확인
-        sequence_info = db.query(
-            ProcedureSequence.GroupID,
-            ProcedureSequence.Element_ID,
-            ProcedureSequence.Bundle_ID,
-            ProcedureSequence.Custom_ID
-        ).filter(ProcedureSequence.GroupID.in_(sequence_ids)).all()
-        
-        # 2. GroupID별로 분류
-        element_groups = set([info.GroupID for info in sequence_info if info.Element_ID])
-        bundle_groups = set([info.GroupID for info in sequence_info if info.Bundle_ID])
-        custom_groups = set([info.GroupID for info in sequence_info if info.Custom_ID])
-
-        # 3. 각각에 대해 쿼리 실행
-        if element_groups:
-            sequence_elements = db.query(
-                ProcedureElement,
-                ProcedureSequence.GroupID
-            ).join(
-                ProcedureSequence, ProcedureElement.ID == ProcedureSequence.Element_ID
-            ).filter(ProcedureSequence.GroupID.in_(element_groups)).all()
-
-        if bundle_groups:
-            # Bundle_ID 값들 추출
-            bundle_ids = [info.Bundle_ID for info in sequence_info if info.Bundle_ID]
+        try:
+            # Sequence 처리를 단순화 - 기본 정보만 조회
+            sequence_info = db.query(ProcedureSequence).filter(
+                ProcedureSequence.GroupID.in_(sequence_ids)
+            ).all()
             
-            # Bundle 테이블에서 해당 GroupID들이 존재하는지 확인
-            existing_bundles = db.query(
-                ProcedureBundle.GroupID,
-                ProcedureBundle.Element_ID,
-                ProcedureBundle.Name
-            ).filter(ProcedureBundle.GroupID.in_(bundle_ids)).all()
-            
-            if existing_bundles:
-                sequence_bundles = db.query(
-                    ProcedureBundle,
-                    ProcedureElement,
-                    ProcedureSequence.GroupID
-                ).join(
-                    ProcedureSequence, ProcedureBundle.GroupID == ProcedureSequence.Bundle_ID
-                ).join(
-                    ProcedureElement, ProcedureBundle.Element_ID == ProcedureElement.ID
-                ).filter(ProcedureSequence.GroupID.in_(bundle_groups)).all()
-
-        if custom_groups:
-            sequence_customs = db.query(
-                ProcedureCustom,
-                ProcedureElement,
-                ProcedureSequence.GroupID
-            ).join(
-                ProcedureSequence, ProcedureCustom.GroupID == ProcedureSequence.Custom_ID
-            ).join(
-                ProcedureElement, ProcedureCustom.Element_ID == ProcedureElement.ID
-            ).filter(ProcedureSequence.GroupID.in_(custom_groups)).all()
-
-        # [ 쿼리 결과 ]
-        # sequence_elements = [
-        #     (<ProcedureElement(ID=20010, Name='포텐자 모공 3회')>, 180),
-        #     (<ProcedureElement(ID=20010, Name='포텐자 모공 3회')>, 180),
-        # ]
-
-        # sequence_elements: (<ProcedureElement(ID = int, Name = 'string')>, GroupID:int)
-
-        # Sequence ID별로 그룹화: key: GroupID, value: ProcedureElement Object List
-        sequence_dict = {}
-
-        # sequence_elements 안에 Tuple을 element, group_id로 언패킹하여 나누고,
-        for element, group_id in sequence_elements:
-            
-            # sequence_dict에 group_id가 없는 경우, 빈 리스트 반환
-            if group_id not in sequence_dict:
-                sequence_dict[group_id] = []
-            
-            # sequence_dict에 sequence_id를 key로 하는 리스트에 element를 추가
-            sequence_dict[group_id].append(element)
-        
-        # sequence_bundles 결과 처리
-        if sequence_bundles:
-            for bundle, element, group_id in sequence_bundles:
-                if group_id not in sequence_dict:
-                    sequence_dict[group_id] = []
+            # Sequence 정보를 딕셔너리로 구성
+            sequence_dict = {}
+            for seq in sequence_info:
+                if seq.GroupID not in sequence_dict:
+                    sequence_dict[seq.GroupID] = []
                 
-                # Bundle의 Name과 Element의 Class_Type을 함께 저장
-                sequence_dict[group_id].append({
-                    'name': bundle.Name,
-                    'class_type': element.Class_Type
-                })
-        
-        # sequence_customs 결과 처리  
-        if sequence_customs:
-            for custom, element, group_id in sequence_customs:
-                if group_id not in sequence_dict:
-                    sequence_dict[group_id] = []
+                # Element_ID가 있는 경우
+                if seq.Element_ID:
+                    element = db.query(ProcedureElement).filter(
+                        ProcedureElement.ID == seq.Element_ID
+                    ).first()
+                    if element:
+                        sequence_dict[seq.GroupID].append({
+                            'name': element.Name,
+                            'class_type': element.Class_Type
+                        })
                 
-                # Custom의 Name과 Element의 Class_Type을 함께 저장
-                sequence_dict[group_id].append({
-                    'name': custom.Name,
-                    'class_type': element.Class_Type
-                })
-        
-        # sequence_dict 그룹화 완료
-        # sequence_dict = {
-        #     180: [
-        #         <ProcedureElement(ID=20010, Name='포텐자 모공 3회')>,
-        #         <ProcedureElement(ID=20010, Name='포텐자 모공 흐하하')>,
-        #     ],
-        #     
-        #     181: [
-        #         <ProcedureElement(ID=20010, Name='포텐자 모공 1회')>,
-        #         <ProcedureElement(ID=20010, Name='포텐자 모공 찡긋')>,
-        #     ],
-        # }
-        
+                # Bundle_ID가 있는 경우
+                elif seq.Bundle_ID:
+                    bundle = db.query(ProcedureBundle).filter(
+                        ProcedureBundle.GroupID == seq.Bundle_ID
+                    ).first()
+                    if bundle:
+                        element = db.query(ProcedureElement).filter(
+                            ProcedureElement.ID == bundle.Element_ID
+                        ).first()
+                        if element:
+                            sequence_dict[seq.GroupID].append({
+                                'name': bundle.Name or element.Name,
+                                'class_type': element.Class_Type
+                            })
+                
+                # Custom_ID가 있는 경우
+                elif seq.Custom_ID:
+                    custom = db.query(ProcedureCustom).filter(
+                        ProcedureCustom.GroupID == seq.Custom_ID
+                    ).first()
+                    if custom:
+                        element = db.query(ProcedureElement).filter(
+                            ProcedureElement.ID == custom.Element_ID
+                        ).first()
+                        if element:
+                            sequence_dict[seq.GroupID].append({
+                                'name': custom.Name or element.Name,
+                                'class_type': element.Class_Type
+                            })
 
-        # 상품의 Sequence_ID와 sequence_dict의 key(GroupID)가 같은 경우 시술 정보를 조회하기 위한 for문
-        for product in products:
-            
-            # 상품의 Sequence_ID와 sequence_dict의 key(GroupID)가 같은 경우 시술 정보를 조회하기 위한 if문
-            if product.Sequence_ID and product.Sequence_ID in sequence_dict:
-                
-                # sequence_dict[product.Sequence_ID]의 모든 item을 순회하면서 result에 추가
-                for item in sequence_dict[product.Sequence_ID]:
-                    # Element 객체인 경우
-                    if hasattr(item, 'Name') and hasattr(item, 'Class_Type'):
-                        result[product.ID]["procedure_names"].append(item.Name)
-                        if item.Class_Type and item.Class_Type not in result[product.ID]["class_types"]:
-                            result[product.ID]["class_types"].append(item.Class_Type)
-                    
-                    # Bundle/Custom 결과인 경우 (딕셔너리)
-                    elif isinstance(item, dict):
+            # 상품의 Sequence_ID와 sequence_dict의 key(GroupID)가 같은 경우 시술 정보를 조회하기 위한 for문
+            for product in products:
+                if product.Sequence_ID and product.Sequence_ID in sequence_dict:
+                    for item in sequence_dict[product.Sequence_ID]:
                         result[product.ID]["procedure_names"].append(item['name'])
                         if item['class_type'] and item['class_type'] not in result[product.ID]["class_types"]:
                             result[product.ID]["class_types"].append(item['class_type'])
-    
-        # sequence_ids 조회 완료 result: {1: {'procedure_names': ['시술1', '시술2'], 'class_types': []}}
+        
+        except Exception as e:
+            print(f"Sequence 시술 정보 조회 중 오류: {str(e)}")
+            # 오류 발생 시 빈 결과로 처리
 
 
 """ 시술 정보 일괄 조회 함수 """
@@ -409,11 +332,17 @@ def build_standard_products_optimized(standard_products, db: Session) -> List[Di
     # 1. 모든 Standard_Info_ID 수집
     standard_info_ids = [p.Standard_Info_ID for p in standard_products if p.Standard_Info_ID]
     
-    # 2. Product_Name 배치 조회
+    # 2. Product_Name, Product_Description, Precautions 배치 조회
     standard_info_dict = {}
     if standard_info_ids:
         standard_infos = db.query(InfoStandard).filter(InfoStandard.ID.in_(standard_info_ids)).all()
-        standard_info_dict = {info.ID: info.Product_Standard_Name for info in standard_infos}
+        standard_info_dict = {
+            info.ID: {
+                'name': info.Product_Standard_Name,
+                'description': info.Product_Standard_Description,
+                'precautions': info.Precautions
+            } for info in standard_infos
+        }
     
     # 3. 시술 정보 배치 조회
     element_ids, bundle_ids, custom_ids, sequence_ids = collect_procedure_ids(standard_products)
@@ -442,18 +371,33 @@ def build_standard_products_optimized(standard_products, db: Session) -> List[Di
             "Original_Price": standard_product.Original_Price
         }
         
-        # Product_Name 추가
+        # Product_Name, Product_Description, Precautions 추가
         if standard_product.Standard_Info_ID and standard_product.Standard_Info_ID in standard_info_dict:
-            product_data["Product_Name"] = standard_info_dict[standard_product.Standard_Info_ID]
-        
+            info_data = standard_info_dict[standard_product.Standard_Info_ID]
+            product_data.update({
+                "Product_Name": info_data['name'],
+                "Product_Description": info_data['description'],
+                "Precautions": info_data['precautions']
+            })
         else:
-            product_data["Product_Name"] = f"Standard {standard_product.ID}"
+            product_data.update({
+                "Product_Name": f"Standard {standard_product.ID}",
+                "Product_Description": None,
+                "Precautions": None
+            })
         
-        # 시술 정보 추가 (class_types만, 처음 3개만)
+        # 시술 정보 추가 (전체 정보)
         procedure_data = procedure_result.get(standard_product.ID, {})
-        class_types = list(set(procedure_data.get("class_types", [])))[:3]
+        class_types = list(set(procedure_data.get("class_types", [])))
+        procedure_names = procedure_data.get("procedure_names", [])
+        
         product_data.update({
             "class_types": class_types,
+            "class_type_count": len(class_types),
+            "procedure_names": procedure_names,
+            "bundle_details": [],
+            "custom_details": [],
+            "sequence_details": []
         })
         
         products.append(product_data)
@@ -470,11 +414,17 @@ def build_event_products_optimized(event_products, db: Session) -> List[Dict[str
     # 1. 모든 Event_Info_ID 수집
     event_info_ids = [p.Event_Info_ID for p in event_products if p.Event_Info_ID]
     
-    # 2. Product_Name 배치 조회
+    # 2. Product_Name, Product_Description, Precautions 배치 조회
     event_info_dict = {}
     if event_info_ids:
         event_infos = db.query(InfoEvent).filter(InfoEvent.ID.in_(event_info_ids)).all()
-        event_info_dict = {info.ID: info.Event_Name for info in event_infos}
+        event_info_dict = {
+            info.ID: {
+                'name': info.Event_Name,
+                'description': info.Event_Description,
+                'precautions': info.Precautions
+            } for info in event_infos
+        }
     
     # 3. 시술 정보 배치 조회
     element_ids, bundle_ids, custom_ids, sequence_ids = collect_procedure_ids(event_products)
@@ -503,17 +453,33 @@ def build_event_products_optimized(event_products, db: Session) -> List[Dict[str
             "Original_Price": event_product.Original_Price
         }
         
-        # Product_Name 추가
+        # Product_Name, Product_Description, Precautions 추가
         if event_product.Event_Info_ID and event_product.Event_Info_ID in event_info_dict:
-            product_data["Product_Name"] = event_info_dict[event_product.Event_Info_ID]
+            info_data = event_info_dict[event_product.Event_Info_ID]
+            product_data.update({
+                "Product_Name": info_data['name'],
+                "Product_Description": info_data['description'],
+                "Precautions": info_data['precautions']
+            })
         else:
-            product_data["Product_Name"] = f"Event {event_product.ID}"
+            product_data.update({
+                "Product_Name": f"Event {event_product.ID}",
+                "Product_Description": None,
+                "Precautions": None
+            })
         
-        # 시술 정보 추가 (class_types만, 처음 3개만)
+        # 시술 정보 추가 (전체 정보)
         procedure_data = procedure_result.get(event_product.ID, {})
-        class_types = list(set(procedure_data.get("class_types", [])))[:3]
+        class_types = list(set(procedure_data.get("class_types", [])))
+        procedure_names = procedure_data.get("procedure_names", [])
+        
         product_data.update({
             "class_types": class_types,
+            "class_type_count": len(class_types),
+            "procedure_names": procedure_names,
+            "bundle_details": [],
+            "custom_details": [],
+            "sequence_details": []
         })
         
         products.append(product_data)
