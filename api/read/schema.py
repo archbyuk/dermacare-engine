@@ -5,22 +5,29 @@
 """
 
 from pydantic import BaseModel
-from typing import List, Optional, Union
+from typing import List, Optional, Union, Dict, Any
 from datetime import datetime
 
 
 # ========== 목록 조회용 스키마 (최적화된 버전) ==========
 
 class ProductListBase(BaseModel):
-    """상품 목록 조회용 기본 정보 - 최적화된 버전"""
+    """상품 목록 조회용 기본 정보 - 이전 구조 복원"""
     ID: int
     Product_Type: Optional[str] = None  # "standard" 또는 "event"
     Package_Type: Optional[str] = None
     Sell_Price: Optional[int] = None
     Original_Price: Optional[int] = None
     Product_Name: Optional[str] = None
+    Product_Description: Optional[str] = None
     class_types: List[str] = []
     class_type_count: Optional[int] = 0
+    procedure_names: List[str] = []
+    Precautions: Optional[str] = None
+    # 상세 정보 필드들
+    bundle_details: List[Dict[str, Any]] = []
+    custom_details: List[Dict[str, Any]] = []
+    sequence_details: List[Dict[str, Any]] = []
 
 
 class StandardProductList(ProductListBase):
