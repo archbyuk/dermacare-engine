@@ -74,6 +74,6 @@ async def upload_file(
     
     except Exception as e:
         raise HTTPException(
-            status_code=500, 
+            status_code=500,
             detail=f"파일 업로드 중 오류 발생: {str(e)}"
         )
