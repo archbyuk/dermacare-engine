@@ -13,7 +13,7 @@ create_router = APIRouter()
 
 # 상담 내용 저장 API
 @create_router.post("/create", response_model=ConsultationCreateResponse)
-async def save_consultation(
+def save_consultation(
     consultation_data: ConsultationCreateRequest,
     db: Session = Depends(get_db)
 ):
