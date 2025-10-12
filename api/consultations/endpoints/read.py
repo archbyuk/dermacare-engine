@@ -16,7 +16,7 @@ read_router = APIRouter()
 
 # 상담 목록 조회 API
 @read_router.get("/read", response_model=ConsultationListResponse)
-async def read_consultations(
+def read_consultations(
     cursor: int = Query(None, description="커서 ID (이전 조회의 마지막 ID)"),
     limit: int = Query(30, ge=1, le=100, description="조회할 개수 (기본 30개, 최대 100개)"),
     sort_by: str = Query("id", description="정렬 기준 (id, consultation_date, customer_name, created_at)"),
