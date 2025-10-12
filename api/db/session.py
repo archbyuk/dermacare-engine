@@ -20,7 +20,7 @@ DATABASE_URL = (
 # SQLAlchemy 엔진 생성
 engine = create_engine(
     DATABASE_URL,
-    echo=True,  # SQL 쿼리 로깅
+    echo=False,
     pool_pre_ping=True,  # 연결 상태 확인
     pool_recycle=3600,  # 연결 재사용 시간 (1시간)
 )

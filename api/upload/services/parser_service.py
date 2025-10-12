@@ -132,7 +132,6 @@ class ParserService:
             
             # 검증 실패 시 오류 발생
             if not is_valid:
-                print(f"DEBUG: 검증 실패 - 오류: {validation_errors}")
                 
                 return {
                     "success": False,
@@ -143,11 +142,7 @@ class ParserService:
             
             # 5. 데이터 정리 (각 파서별 특화 정리)부터 시작: nomalized_data 함수 사용
             # abstract_utils의 clean_data 함수 사용 (자동 상속)
-
-            print("[DEBUG] 데이터 정리 시작: ", used_df)
             used_df = selected_parser.clean_data(used_df)
-
-            print("[DEBUG] 데이터 정리 완료: ", used_df)
 
             # 6. DB 삽입 (각 파서별 특화 삽입): 일요일에 오면 여기부터 시작 insert_data 함수 사용
             result_df = selected_parser.insert_data(used_df)
@@ -195,8 +190,6 @@ class ParserService:
 
             # 파싱 중 에러 발생 시 에러 결과 저장
             error_results = []
-            
-            print("[DEBUG] 파싱 작업 목록 생성 시작: ", parse_tasks)
 
             for download_info in download_results:
                 task = asyncio.create_task(
@@ -210,8 +203,6 @@ class ParserService:
 
             # 매핑한 모든 파싱 작업 동시 실행
             parsered_results = await asyncio.gather(*parse_tasks)
-
-            print(f"DEBUG: 파싱 결과: {parsered_results}")
 
             # 파싱 중 에러 발생 시 에러 결과 저장
             for parsered_result in parsered_results:

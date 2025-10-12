@@ -1,7 +1,6 @@
 """
     [ Info_Membership Parser ]
         맴버십 정보 DataFrame을 읽어 DB에 삽입하는 파서
-
 """
 
 import pandas as pd
