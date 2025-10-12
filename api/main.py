@@ -11,6 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from api.health import health_router
 from upload import upload_router
 from read import read_router
+from consultations.router import consultations_router
 from api.auth import router as auth_router
 from api.admin_tables import global_router, consumables_router, elements_router, bundles_router, customs_router, sequences_router, products_router, membership_router
 
@@ -42,6 +43,7 @@ app.include_router(customs_router)
 app.include_router(sequences_router)
 app.include_router(products_router)
 app.include_router(membership_router)
+app.include_router(consultations_router)  # 상담 API
 
 @app.get("/")
 def root():
@@ -63,6 +65,7 @@ def root():
             "sequences": "/sequences",
             "products": "/products",
             "membership": "/membership",
+            "consultations": "/consultations",
             "docs": "/docs",
             "redoc": "/redoc"
         }
