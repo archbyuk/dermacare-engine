@@ -44,7 +44,6 @@ def normalize_data(used_df: pd.DataFrame) -> pd.DataFrame:
                 else object_data
         )
 
-    print("[DEBUG] 데이터 정리 완료: normalize_data > clean_data 완료")
 
     # 정리된 데이터프레임 반환: 모든 컬럼의 데이터 타입을 object로 변환 후 row data의 앞뒤 공백 제거
     return used_df

@@ -4,13 +4,11 @@
     .xlsx, .xls 파일 업로드 엔드포인트를 관리합니다.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Form
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, HTTPException, Form
 
 from ..services.download_service import download_service
 from ..schema import UploadResponse
 from ..services.parser_service import ParserService
-from db.session import get_db
 
 # upload api 사용시 /upload 경로로 접근
 router = APIRouter(tags=["File Upload"])
@@ -19,10 +17,9 @@ router = APIRouter(tags=["File Upload"])
 @router.post("/upload", response_model=UploadResponse)
 async def upload_file(
     file_json: str = Form(None),            # json 문자열로 받음 (파일 url들)
-    db_session: Session = Depends(get_db),
 ):
     try:
-        parsered_layer = ParserService(db_session)
+        parsered_layer = ParserService()
         
         # 파일 다운로드: file들의 url을 바탕으로 파일 다운로드 후 처리
         download_results = await download_service(file_json)
@@ -54,19 +51,39 @@ async def upload_file(
 
         total_files = len(download_results) if download_results else 0
 
+        # 응답 상태 결정
+        if total_files == 0:
+            raise HTTPException(
+                status_code=400,
+                detail="업로드할 파일이 없습니다"
+            )
         
-        # 응답 데이터 구성: 임시로 해놓은 거고 나중에 수정해야 함
-        response_data = {
-            "status": "completed",
-            "message": "파일 업로드 및 처리 결과",
-            "total_files": total_files,
-            "successful_files": successful_filenames,
-            "failed_files": failed_filenames,
-            "results": parsered_results,
-            "errors": error_results
-        }
+        # 모든 파일이 실패한 경우
+        if successful_filenames == 0:
+            raise HTTPException(
+                status_code=500,
+                detail=f"모든 파일 처리 실패 ({failed_filenames}개 파일 실패). 에러 목록을 확인하세요.",
+            )
         
-        return UploadResponse(**response_data)
+        # 일부 실패한 경우
+        if failed_filenames > 0:
+            status = "partial_success"
+            message = f"{successful_filenames}개 성공, {failed_filenames}개 실패"
+        # 모두 성공한 경우
+        else:
+            status = "completed"
+            message = f"모든 파일 처리 완료 ({successful_filenames}개 파일)"
+        
+        # 응답 데이터 구성
+        return UploadResponse(
+            status=status,
+            message=message,
+            total_files=total_files,
+            successful_files=successful_filenames,
+            failed_files=failed_filenames,
+            results=parsered_results,
+            errors=error_results
+        )
     
 
     except HTTPException:
