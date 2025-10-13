@@ -69,6 +69,7 @@ async def upload_file(
         if failed_filenames > 0:
             status = "partial_success"
             message = f"{successful_filenames}개 성공, {failed_filenames}개 실패"
+        
         # 모두 성공한 경우
         else:
             status = "completed"

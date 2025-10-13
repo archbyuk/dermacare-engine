@@ -84,7 +84,9 @@ class MembershipParser(AbstractUtils):
             # 트랜잭션 시작
             async with self.db.begin():
                 # 기존 데이터 전체 삭제
-                await self.db.execute(delete(Membership))
+                await self.db.execute(
+                    delete(Membership)
+                )
                 
                 # 삽입할 데이터 리스트: 데이터프레임을 딕셔너리 리스트로 변환
                 # ex) 
