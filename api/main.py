@@ -32,7 +32,7 @@ app.add_middleware(
 
 # 라우터 등록
 app.include_router(health_router)
-app.include_router(upload_router)  # 새로운 구조
+app.include_router(upload_router)
 app.include_router(read_router)
 app.include_router(auth_router)
 app.include_router(global_router)

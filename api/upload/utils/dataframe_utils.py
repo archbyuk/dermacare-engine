@@ -198,7 +198,6 @@ class DataFrameUtils:
             # DataFrame으로 변환
             used_df = pd.DataFrame(enum_dict)
 
-            print("[DEBUG] Enum 데이터프레임 변환 완료: ", used_df)
             
             return used_df
             

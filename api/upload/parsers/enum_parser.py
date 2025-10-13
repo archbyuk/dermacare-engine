@@ -7,7 +7,8 @@
 
 import pandas as pd
 from typing import Dict, Any, List, Tuple
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete, insert
 from ..utils.abstract_utils import AbstractUtils
 from db.models.enum import Enum
 
@@ -18,7 +19,7 @@ class EnumParser(AbstractUtils):
             used_df: 빈 값, 사용하지 않는 컬럼, 숫자 값이 정리된 데이터프레임 (type: pd.DataFrame)
     """
 
-    def __init__(self, db_session: Session):
+    def __init__(self, db_session: AsyncSession):
         super().__init__(db_session, "Enum")
     
     
@@ -58,19 +59,18 @@ class EnumParser(AbstractUtils):
             
             errors.append(f"{filename}의 중복된 (enum_type, id) 조합이 있습니다: {duplicated_pairs}")
     
-        print("[DEBUG] Enum 검증 결과: ", errors)
         # 에러 리스트에 아무것도 없다면 0, 아니면 1. 그리고 에러 리스트 반환
         return len(errors) == 0, errors
 
     
     # Enum 테이블에 데이터 삽입 (DB insert)
-    def insert_data(self, used_df: pd.DataFrame) -> Dict[str, Any]:
+    async def insert_data(self, used_df: pd.DataFrame) -> Dict[str, Any]:
         
         try:
             # 트랜잭션 시작
-            with self.db.begin():
-                # 기존 데이터 전체 삭제
-                self.db.query(Enum).delete()
+            async with self.db.begin():
+                # 기존 데이터 전체 삭제 (비동기)
+                await self.db.execute(delete(Enum))
 
                 # 삽입할 데이터 리스트: 데이터프레임을 딕셔너리 리스트로 변환
                 # ex) 
@@ -80,13 +80,12 @@ class EnumParser(AbstractUtils):
                 # ]
                 insert_list = used_df.to_dict(orient='records')
 
-                # 배치 삽입: bulk_insert_mappings 함수 사용
-                # render_nulls라는 인자를 False로 설정하여, NULL 값을 무시하고 삽입할 수 있음 (Optional)
-                self.db.bulk_insert_mappings(Enum, insert_list)
+                # 배치 삽입 (비동기)
+                if insert_list:
+                    await self.db.execute(insert(Enum), insert_list)
 
-            # with self.db.begin(): 트랜잭션 커밋 자동 적용 및 롤백 자동 적용
+            # async with self.db.begin(): 트랜잭션 커밋 자동 적용 및 롤백 자동 적용
 
-            print(f"[DEBUG] Enum 삽입 완료 - 총 {len(insert_list)}개 항목 삽입됨. 예시:", insert_list[:10])
             
             # 성공 결과 반환
             return self.success_result(len(used_df), len(insert_list))

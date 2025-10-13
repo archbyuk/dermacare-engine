@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, Response
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
 import jwt
@@ -56,7 +56,7 @@ def generate_refresh_token() -> str:
     사용자 로그인 API (JWT 토큰 생성)
 """
 @router.post("/login", response_model=LoginResponse)
-def login(request: LoginRequest, response: Response, db: Session = Depends(get_db)):
+def login(request: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
     try:
         # 사용자 조회
         user = db.query(Users).filter(Users.Username == request.username).first()
@@ -125,7 +125,7 @@ def login(request: LoginRequest, response: Response, db: Session = Depends(get_d
     리프레시 토큰으로 새로운 액세스 토큰 발급
 """
 @router.post("/refresh", response_model=LoginResponse)
-def refresh_token(request: RefreshRequest, response: Response, db: Session = Depends(get_db)):
+def refresh_token(request: RefreshRequest, response: Response, db: AsyncSession = Depends(get_db)):
     try:
         # 리프레시 토큰으로 사용자 조회
         user = db.query(Users).filter(
@@ -176,7 +176,7 @@ def refresh_token(request: RefreshRequest, response: Response, db: Session = Dep
     토큰 무효화
 """
 @router.post("/logout")
-def logout(request: LogoutRequest, response: Response, db: Session = Depends(get_db)):
+def logout(request: LogoutRequest, response: Response, db: AsyncSession = Depends(get_db)):
     try:
         user = db.query(Users).filter(Users.Refresh_Token == request.refresh_token).first()
         

@@ -12,7 +12,7 @@ DermaCare Database Package
 
 # 기본 데이터베이스 구성요소
 from .base import Base, metadata
-from .session import engine, SessionLocal, get_db
+from .session import engine, SessionLocal, get_db, async_engine, AsyncSessionLocal, get_async_db
 
 # ORM models
 from .models.enum import Enum   # 자료형
@@ -36,6 +36,10 @@ __all__ = [
     "engine", 
     "SessionLocal", 
     "get_db",
+    "async_get_db",
+    "async_engine",
+    "AsyncSessionLocal",
+    "get_async_db",
     
     # 기본 모델들
     "Enum",

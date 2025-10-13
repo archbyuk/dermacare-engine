@@ -14,7 +14,6 @@ async def download_service(file_json: str) -> List[Dict[str, Any]]:
     
     try:
         files_data = json.loads(file_json)
-        print("[DEBUG] 파싱된 files_data: ", files_data)
 
         # 모든 파일을 동시에 다운로드 (asyncio로 일괄 처리)
         async with aiohttp.ClientSession() as session:
@@ -34,14 +33,11 @@ async def download_service(file_json: str) -> List[Dict[str, Any]]:
                     #   'file_size': '파일 크기'
                     # }
                 )
-
-                print("[DEBUG] 파일 다운로드 작업 생성: ", task)
                 
                 download_tasks.append(task)
 
             # 모든 파일을 동시에 다운로드
             download_results = await asyncio.gather(*download_tasks)
-            print("[DEBUG] 모든 파일 다운로드 완료: ", len(download_results))
             
 
             # 다운로드 결과 반환

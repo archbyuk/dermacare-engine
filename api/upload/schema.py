@@ -15,6 +15,7 @@ class UploadResponse(BaseModel):
     successful_files: int
     failed_files: int
     results: List[Dict[str, Any]]
+    errors: List[Dict[str, Any]] = []  # 에러 목록 (기본값: 빈 리스트)
 
 class ErrorResponse(BaseModel):
     """에러 응답"""

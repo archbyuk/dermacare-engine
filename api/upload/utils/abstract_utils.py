@@ -4,13 +4,13 @@
 
 from typing import Tuple, List, Dict, Any
 from abc import ABC, abstractmethod
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 import pandas as pd
 from ..utils.cleaner_utils import normalize_data
 
 class AbstractUtils(ABC):
     
-    def __init__(self, db_session: Session, table_name: str):
+    def __init__(self, db_session: AsyncSession, table_name: str):
         self.db = db_session
         self.table_name = table_name
 
@@ -50,7 +50,7 @@ class AbstractUtils(ABC):
 
 
     @abstractmethod
-    def insert_data(self, used_df: pd.DataFrame) -> Dict[str, Any]:
+    async def insert_data(self, used_df: pd.DataFrame) -> Dict[str, Any]:
         """
             DB 삽입 로직
             각 파서에서 테이블별 특화 삽입 구현
