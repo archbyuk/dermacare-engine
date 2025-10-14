@@ -48,7 +48,6 @@ class AbstractUtils(ABC):
         # 결측치 처리, 데이터 타입 변환, 공백 제거, dtypes object로 변환
         return normalize_data(used_df)
 
-
     @abstractmethod
     async def insert_data(self, used_df: pd.DataFrame) -> Dict[str, Any]:
         """

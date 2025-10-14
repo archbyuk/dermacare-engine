@@ -7,6 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import HTTPException
 from typing import Dict, Any, List
 import asyncio
+# 각 파일마다 독립적인 세션 생성
+from db.session import AsyncSessionLocal
 
 # 유틸리티 클래스 import
 from ..utils.dataframe_utils import DataFrameUtils
@@ -103,8 +105,7 @@ class ParserService:
                 - file_data: 파일 데이터 (bytes 형태로 다운로드 된 파일 데이터)
         """
         
-        # 각 파일마다 독립적인 세션 생성
-        from db.session import AsyncSessionLocal
+        # 각 파일마다 독립적인 세션 생성: AsyncSessionLocal()을 호출하여 생성된 AsyncSession 객체를 db라는 객체로서 사용한다는 의미
         async with AsyncSessionLocal() as db:
             try:
                 # 파일명을 기반으로 파서를 선택 (mapping_parser 함수 사용)
@@ -175,10 +176,7 @@ class ParserService:
                 }
     
     # 파일 다운로드 후 파싱 처리 로직(asyncio로 일괄 처리 사용)
-    async def parser_process(
-        self,
-        download_results: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+    async def parser_process(self, download_results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
         try:
             # 각 파일별로 파싱 작업 지정 후 작업 목록 생성
