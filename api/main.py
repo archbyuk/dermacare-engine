@@ -12,7 +12,7 @@ from api.health import health_router
 from upload import upload_router
 from read import read_router
 from consultations.router import consultations_router
-from api.auth import router as auth_router
+from auth import auth_router
 from api.admin_tables import global_router, consumables_router, elements_router, bundles_router, customs_router, sequences_router, products_router, membership_router
 
 app = FastAPI(
@@ -24,10 +24,10 @@ app = FastAPI(
 # CORS 설정 추가
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 모든 도메인 허용 (개발용)
-    allow_credentials=True,
-    allow_methods=["*"],  # 모든 HTTP 메서드 허용
-    allow_headers=["*"],  # 모든 헤더 허용
+    allow_origins=["*"],    # 모든 도메인 허용 (개발용)
+    allow_credentials=True, # 쿠키 전달 허용
+    allow_methods=["*"],    # 모든 HTTP 메서드 허용
+    allow_headers=["*"],    # 모든 헤더 허용
 )
 
 # 라우터 등록
