@@ -6,7 +6,6 @@
 
 from pydantic import BaseModel
 from typing import List, Optional, Union, Dict, Any
-from datetime import datetime
 
 
 # ========== 목록 조회용 스키마 (최적화된 버전) ==========
@@ -74,20 +73,13 @@ class EventProductDetail(ProductDetailBase):
 
 
 ### Read API 응답 스키마 ###
-
-class PaginationInfo(BaseModel):
-    """페이지네이션 정보"""
-    page: int
-    page_size: int
-    total_count: int
-    total_pages: int
-
 class ProductListResponse(BaseModel):
     """상품 목록 응답 - 최적화된 버전"""
     status: str
     message: str
+    errors: Optional[List[str]] = []
     data: List[Union[StandardProductList, EventProductList]]
-    pagination: PaginationInfo
+    total_count: int
 
 
 class ProductDetailResponse(BaseModel):

@@ -26,7 +26,7 @@ engine = create_engine(
     SYNC_DATABASE_URL,
     echo=False,
     pool_pre_ping=True,  # 연결 상태 확인
-    pool_recycle=3600,  # 연결 재사용 시간 (1시간)
+    pool_recycle=3600,   # 연결 재사용 시간 (1시간)
 )
 
 # 세션 팩토리 생성
