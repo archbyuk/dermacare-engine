@@ -16,18 +16,23 @@ from auth import auth_router
 from api.admin_tables import global_router, consumables_router, elements_router, bundles_router, customs_router, sequences_router, products_router, membership_router
 
 app = FastAPI(
-    title="DermaCare API",
-    description="DermaCare 시술 관리 시스템 API - Excel 파싱 및 데이터 관리",
-    version="2.0.0"
+    title="FaceFilter API",
+    description="페이스필터 데이터 관리 API",
+    version="2.0.1"
 )
 
 # CORS 설정 추가
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],    # 모든 도메인 허용 (개발용)
+    allow_origins=[
+        "http://localhost:3000",
+        "https://loacalhost:3001",
+        "https://localhost:3002",
+        "https://dermacare-view.vercel.app",
+    ],
     allow_credentials=True, # 쿠키 전달 허용
-    allow_methods=["*"],    # 모든 HTTP 메서드 허용
-    allow_headers=["*"],    # 모든 헤더 허용
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 # 라우터 등록
@@ -43,15 +48,15 @@ app.include_router(customs_router)
 app.include_router(sequences_router)
 app.include_router(products_router)
 app.include_router(membership_router)
-app.include_router(consultations_router)  # 상담 API
+app.include_router(consultations_router)
 
 @app.get("/")
 def root():
     """API 루트 엔드포인트"""
     return {
-        "message": "DermaCare API Server",
-        "version": "2.0.0",
-        "description": "Excel 파일 업로드 및 파싱을 지원하는 시술 조회 시스템",
+        "message": "FaceFilter API Server",
+        "version": "2.0.1",
+        "description": "페이스필터 데이터 관리 API",
         "endpoints": {
             "health": "/health",
             "upload": "/upload",
