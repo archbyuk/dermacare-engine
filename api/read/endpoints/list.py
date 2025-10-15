@@ -11,7 +11,7 @@ from db.session import SessionLocal
 from db.models.product import ProductEvent, ProductStandard
 from ..schema import ProductListResponse
 from ..services.list_service import build_standard_products_optimized, build_event_products_optimized
-from concurrent.futures import as_completed
+import time
 
 
 router = APIRouter()
@@ -33,24 +33,35 @@ router = APIRouter()
         - 병렬 처리 도입 (ThreadPoolExecutor)
         - Standard와 Event 상품을 동시 조회 및 처리
 
+        > 데이터 read 속도 개선이 목표였는데 실패. (개선 x)
+
     3차 성능개선 ()
         - 에러 처리 개선 예정
-        - 코드 유지보수성 개선 예정
+        - 코드 베이스 정리 및 유지보수성 개선 예정
         - 쿼리 최적화 예정
 """
 
 
 def fetch_standard_products():
     """Standard 상품 조회 및 처리 (별도 세션 사용)"""
+    start_time = time.time()
     db = SessionLocal()
     
     try:
-
+        query_start = time.time()
         standard_products = db.query(ProductStandard).order_by(
             desc(ProductStandard.Standard_Start_Date)
         ).all()
+        query_time = time.time() - query_start
         
-        return build_standard_products_optimized(standard_products, db)
+        build_start = time.time()
+        result = build_standard_products_optimized(standard_products, db)
+        build_time = time.time() - build_start
+        
+        total_time = time.time() - start_time
+        print(f"[PERF] Standard - 쿼리: {query_time:.3f}s | 가공: {build_time:.3f}s | 총: {total_time:.3f}s")
+        
+        return result
     
     finally:
         db.close()
@@ -58,12 +69,24 @@ def fetch_standard_products():
 
 def fetch_event_products():
     """Event 상품 조회 및 처리 (별도 세션 사용)"""
+    start_time = time.time()
     db = SessionLocal()
+    
     try:
+        query_start = time.time()
         event_products = db.query(ProductEvent).order_by(
             desc(ProductEvent.Event_Start_Date)
         ).all()
-        return build_event_products_optimized(event_products, db)
+        query_time = time.time() - query_start
+        
+        build_start = time.time()
+        result = build_event_products_optimized(event_products, db)
+        build_time = time.time() - build_start
+        
+        total_time = time.time() - start_time
+        print(f"[PERF] Event - 쿼리: {query_time:.3f}s | 가공: {build_time:.3f}s | 총: {total_time:.3f}s")
+        
+        return result
     
     finally:
         db.close()
@@ -71,10 +94,15 @@ def fetch_event_products():
 
 @router.get("/products", response_model=ProductListResponse)
 def get_products():
-
+    api_start = time.time()
+    
     try:
         products = []
         products_errors = []
+        
+        parallel_start = time.time()
+        print(f"\n{'='*60}")
+        print(f"[PERF] API 시작 - 병렬 처리 시작")
         
         # Thread를 2개 생성하여 병렬 처리: Standard와 Event 상품을 동시에 조회
         with ThreadPoolExecutor(max_workers=2) as thread_executor:
@@ -103,8 +131,15 @@ def get_products():
                 else:
                     products.extend(thread_future.result())
         
+        parallel_time = time.time() - parallel_start
+        print(f"[PERF] 병렬 처리 완료: {parallel_time:.3f}s")
+        
         # 총 상품 개수 조회: 두 작업의 결과를 합친 상품 개수
         total_count = len(products)
+        
+        api_total_time = time.time() - api_start
+        print(f"[PERF] API 전체 응답 시간: {api_total_time:.3f}s")
+        print(f"{'='*60}\n")
         
         return ProductListResponse(
             status="success",
