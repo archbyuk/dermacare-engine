@@ -12,6 +12,7 @@ def generate_access_token(user_id: int, username: str, role: str) -> str:
         "exp": datetime.now(timezone.utc) + timedelta(minutes=15),
         "iat": datetime.now(timezone.utc)
     }
+    
     # 환경변수에서 시크릿 키 가져오기
     secret_key = os.getenv("JWT_SECRET_KEY", "dermacare_secret_key_2024")
     return jwt.encode(payload, secret_key, algorithm="HS256")

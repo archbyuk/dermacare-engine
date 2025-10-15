@@ -1,8 +1,8 @@
 from fastapi import APIRouter, HTTPException, Depends, Response
 from sqlalchemy.orm import Session
 from db.session import get_db
-from db.models.users import Users
 from auth.schema import LogoutRequest
+from auth.services.auth_service import process_logout
 
 router = APIRouter()
 
@@ -13,18 +13,10 @@ def logout(
     db: Session = Depends(get_db)
 ):
     try:
-        user = db.query(Users).filter(
-            Users.Refresh_Token == request.refresh_token
-        ).first()
+        # 로그아웃 처리 (서비스 레이어)
+        process_logout(db, request.refresh_token)
         
-        if user:
-            # 토큰 정보 초기화
-            user.Refresh_Token = None
-            user.Token_Expires_At = None
-            
-            db.commit()
-        
-        # 쿠키 삭제
+        # 쿠키 삭제 (엔드포인트 책임)
         response.delete_cookie("access_token")
         response.delete_cookie("refresh_token")
         
