@@ -7,6 +7,7 @@
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from api.health import health_router
 from upload import upload_router
@@ -34,6 +35,9 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
 )
+
+# Gzip 압축 설정 (600KB 이상 응답만 압축)
+app.add_middleware(GZipMiddleware, minimum_size=614400)
 
 # 라우터 등록
 app.include_router(health_router)
