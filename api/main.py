@@ -11,7 +11,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 
 from api.health import health_router
 from upload import upload_router
-from read import read_router
+from list.router import list_router
 from consultations.router import consultations_router
 from auth import auth_router
 from api.admin_tables import global_router, consumables_router, elements_router, bundles_router, customs_router, sequences_router, products_router, membership_router
@@ -42,7 +42,7 @@ app.add_middleware(GZipMiddleware, minimum_size=614400)
 # 라우터 등록
 app.include_router(health_router)
 app.include_router(upload_router)
-app.include_router(read_router)
+app.include_router(list_router)
 app.include_router(auth_router)
 app.include_router(global_router)
 app.include_router(consumables_router)
