@@ -14,6 +14,8 @@ from upload import upload_router
 from list.router import list_router
 from consultations.router import consultations_router
 from auth import auth_router
+from new_auth.new_login import router as new_auth_router
+from new_auth.new_token_reissue import router as new_token_reissue_router
 from api.admin_tables import global_router, consumables_router, elements_router, bundles_router, customs_router, sequences_router, products_router, membership_router
 
 app = FastAPI(
@@ -26,10 +28,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",
-        "https://loacalhost:3001",
-        "https://localhost:3002",
+        "http://localhost:3333",
+        "https://localhost:3334",
         "https://dermacare-view.vercel.app",
+        "https://dev.facefilter.co.kr",
     ],
     allow_credentials=True, # 쿠키 전달 허용
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
@@ -44,6 +46,8 @@ app.include_router(health_router)
 app.include_router(upload_router)
 app.include_router(list_router)
 app.include_router(auth_router)
+app.include_router(new_auth_router, prefix="/new_login", tags=["New Auth"])
+app.include_router(new_token_reissue_router, prefix="/new_token_reissue", tags=["New Token Reissue"])
 app.include_router(global_router)
 app.include_router(consumables_router)
 app.include_router(elements_router)
@@ -66,6 +70,7 @@ def root():
             "upload": "/upload",
             "read": "/read",
             "auth": "/auth",
+            "new-auth": "/new_login",
             "global": "/global",
             "consumables": "/consumables",
             "elements": "/elements",
