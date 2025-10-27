@@ -3,11 +3,10 @@
     Product_Standard와 Product_Event 테이블의 기본 정보를 조회합니다.
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from ..schema import ProductListResponse
 from ..services.inquiry_service import inquiry_standard_products, inquiry_event_products
-
 router = APIRouter()
 
 """
@@ -38,13 +37,26 @@ router = APIRouter()
         > 결과: 쿼리 횟수 약 10% 감소, 응답 시간 약 25ms 단축, 코드 복잡도 대폭 개선
 
     프론트엔드 배포가 Vercel로 되어있는데, 서버 리전은 서울이고 버셀 리전은 미국(동부)임. 나중에 실사용량이 많아지면 리전 변경 필요.
-    또한, 응답 데이터 크기가 너무 큼. 이건 추후에 최적화 필요.    
+    또한, 응답 데이터 크기가 너무 큼. 이건 추후에 최적화 필요.   
 """
 
 
 @router.get("/products", response_model=ProductListResponse)
-def get_products():
+def get_products(request: Request):
+    
+    # JWT 토큰 검증 (미들웨어에서 이미 검증됨)
+    user_info = request.state.user
+    
+    # 디버깅 로그: 권한 검사 시작
+    required_permission = "products_list:read:all"
 
+    # 권한 검사: products_list:read:all 권한 필요
+    if required_permission not in user_info.get("permissions", []):
+        raise HTTPException(
+            status_code=403,
+            detail="권한이 없어 상품 목록을 조회할 수 없습니다. 관리자에게 문의해주세요."
+        )
+        
     try:
         products = []
         products_errors = []

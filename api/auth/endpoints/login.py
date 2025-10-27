@@ -39,7 +39,7 @@ def login(
         
         return LoginResponse(
             success=True,
-            message="로그인 성공",    # 성공 메시지 개선 필요: {user.team}의 {user.Username}님 환영합니다.
+            message=f"{user.team}의 {user.Username}님 환영합니다.",
             user_id=user.ID,
             username=user.Username,
             role=user.Role

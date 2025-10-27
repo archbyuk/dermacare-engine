@@ -22,10 +22,6 @@ class LoginRequest(BaseModel):
 class LoginResponse(BaseModel):
     success: bool
     message: str
-    display_name: str
-    organization_name: str
-    group_name: str
-    role: str
 
 def verify_password(password: str, hash_password: str) -> bool:
     try:
@@ -128,7 +124,7 @@ def generate_access_token(user_id: int, user_uuid: str, user_display_name: str, 
     
     # JWT 페이로드 생성
     now = datetime.now(timezone.utc)
-    expiration_time = now + timedelta(minutes=5)
+    expiration_time = now + timedelta(minutes=15)
 
     jwt_payload = {
         "iss": "MSO_API_AUTH_SERVER",
@@ -136,7 +132,6 @@ def generate_access_token(user_id: int, user_uuid: str, user_display_name: str, 
         "sub": user_uuid,
         "display_name": user_display_name,
         "organizations": user_organizations_list,
-        "current_org": user_organizations_list[0]["organization_uuid"] if user_organizations_list else None,
         "iat": int(now.timestamp()),
         "exp": int(expiration_time.timestamp())
     }
@@ -308,11 +303,7 @@ def new_login(
 
         return LoginResponse(
             success=True,
-            message="로그인 성공",    # 성공 메시지 개선 필요: {user.team}의 {user.Username}님 환영합니다.
-            display_name=verified_user.user_display_name,
-            organization_name=verified_user.organization_name,
-            group_name=verified_user.group_name,
-            role=verified_user.role_name
+            message=f"{verified_user.user_display_name}님 환영합니다.",
         )
     
     except ValueError as e:

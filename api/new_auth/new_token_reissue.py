@@ -26,9 +26,7 @@ class LoginResponse(BaseModel):
 
 # 리프레시 토큰 검증 및 사용자 정보 조회
 def verify_refresh_token(refresh_token: str, db: Session):
-    """
-    리프레시 토큰을 검증하고 사용자 정보를 반환합니다.
-    """
+
     try:
         # 리프레시 토큰으로 사용자 정보 조회
         refresh_verification = """

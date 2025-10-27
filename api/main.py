@@ -5,14 +5,16 @@
     모든 라우터를 등록하고 기본 설정을 관리합니다.
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-
+from security.verification_user import verification_jwt
+from fastapi.responses import JSONResponse
 from api.health import health_router
 from upload import upload_router
 from list.router import list_router
 from consultations.router import consultations_router
+from consultations.endpoints.member import member_router
 from auth import auth_router
 from new_auth.new_login import router as new_auth_router
 from new_auth.new_token_reissue import router as new_token_reissue_router
@@ -41,6 +43,40 @@ app.add_middleware(
 # Gzip 압축 설정 (600KB 이상 응답만 압축)
 app.add_middleware(GZipMiddleware, minimum_size=614400)
 
+# JWT 인증 미들웨어 (모든 요청에 적용)
+@app.middleware("http")
+async def jwt_auth_middleware(request: Request, pass_middleware):
+    # 인증이 불필요한 경로들
+    auth_exempt_paths = [
+        "/health",
+        "/docs", 
+        "/redoc",
+        "/openapi.json",
+        "/auth/login",
+        "/new_login/new_login",
+        "/new_token_reissue/refresh"
+    ]
+    
+    # 인증 불필요한 경로는 통과
+    if request.url.path in auth_exempt_paths:
+        return await pass_middleware(request)
+    
+    # JWT 토큰 검증
+    try:
+        print(f"🔍 DEBUG: request.url.path = {request.ora}")
+        user_info = verification_jwt(request)
+        # request.state: 각 HTTP 요청마다 독립적으로 존재하는 임시 저장소로, 사용자 인증상태 검증 후 user정보를 저장하여 사용
+        request.state.user = user_info
+        
+    
+    except HTTPException as e:
+        return JSONResponse(
+            status_code=e.status_code,
+            content={"detail": e.detail}
+        )
+    
+    return await pass_middleware(request)
+
 # 라우터 등록
 app.include_router(health_router)
 app.include_router(upload_router)
@@ -57,6 +93,7 @@ app.include_router(sequences_router)
 app.include_router(products_router)
 app.include_router(membership_router)
 app.include_router(consultations_router)
+app.include_router(member_router, prefix="/consultations", tags=["Consultation Members"])
 
 @app.get("/")
 def root():
@@ -80,6 +117,7 @@ def root():
             "products": "/products",
             "membership": "/membership",
             "consultations": "/consultations",
+            "consultation-members": "/consultations/consultation-member",
             "docs": "/docs",
             "redoc": "/redoc"
         }

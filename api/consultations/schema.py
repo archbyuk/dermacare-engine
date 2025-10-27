@@ -1,10 +1,54 @@
-"""
-    상담 관련 Pydantic 스키마
-"""
-
 from pydantic import BaseModel, Field
 from typing import Optional, List, Literal
 from datetime import date, time, datetime
+from enum import Enum
+
+# Enum 정의
+class InflowPath(str, Enum):
+    PROMOTION = "판촉물"
+    WALK_IN = "워크인"
+    REFERRAL = "지인 소개"
+    DB_MARKETING = "DB 마케팅"
+    GOOGLE_SEARCH = "구글 검색"
+    LOCAL_MARKETING = "로컬 마케팅"
+    NAVER_SEARCH = "네이버 검색"
+    NAVER_CAFE = "네이버 카페"
+
+class ConsultationType(str, Enum):
+    NEW_PATIENT = "신환상담"
+    FOLLOW_UP = "경과상담"
+    DISCHARGE = "종료상담"
+    RE_VISIT = "재방상담"
+
+class ConcernType(str, Enum):
+    FILLER = "필러"
+    HAIR_REMOVAL = "제모"
+    WEDDING = "결혼"
+    LIFTING = "리프팅"
+    MOLE_REMOVAL = "점제거"
+    BOTOX = "보톡스"
+    PIGMENT_TREATMENT = "색소치료"
+    SKIN_CARE = "피부관리"
+    THREAD_LIFTING = "실리프팅"
+    BASIC_CONSULTATION = "기본상담"
+    SKIN_BOOST = "스킨부스트"
+
+class GoalTreatment(str, Enum):
+    YES = "true"
+    NO = "false"
+
+class SortBy(str, Enum):
+    CREATED_AT = "created_at"
+    TOTAL_PAYMENT = "total_payment"
+
+class SortDirection(str, Enum):
+    ASC = "asc"
+    DESC = "desc"
+
+class DateFilterType(str, Enum):
+    DAY = "day"
+    WEEK = "week"
+    MONTH = "month"
 
 # 상담 저장 요청 스키마
 class ConsultationCreateRequest(BaseModel):
@@ -40,24 +84,48 @@ class ConsultationCreateResponse(BaseModel):
 class ConsultationReadRequest(BaseModel):
     """상담 조회 요청 스키마"""
     
-    cursor: Optional[int] = Field(None, description="커서 ID (이전 조회의 마지막 ID)")
-    limit: int = Field(30, ge=1, le=100, description="조회할 개수 (기본 30개, 최대 100개)")
-    sort_by: Optional[Literal["id", "consultation_date", "customer_name", "created_at"]] = Field("id", description="정렬 기준 (id, consultation_date, customer_name, created_at)")
-    sort_order: Optional[Literal["asc", "desc"]] = Field("desc", description="정렬 순서 (asc: 오름차순, desc: 내림차순)")
+    # 페이지네이션 설정
+    page: int = Field(1, ge=1, description="페이지 번호 (기본 1페이지)")
+    page_size: int = Field(5, ge=1, description="페이지 당 20개의 상담 데이터 조회")
+    
+    # 필터 설정: 상담 날짜, 유입경로, 상담 유형(환자 분류), 고민 유형, 목표 시술, 상담자(개별, all)
+    inflow_path: Optional[InflowPath] = Field(None, description="유입경로 필터")
+    consultation_type: Optional[ConsultationType] = Field(None, description="상담유형(환자 분류) 필터")
+    concern_type: Optional[ConcernType] = Field(None, description="고민유형 필터")
+    goal_treatment: Optional[GoalTreatment] = Field(None, description="목표시술 필터")
+    consultant_uuid: Optional[str] = Field(None, description="상담자 UUID 필터 (특정 팀원의 상담만 조회)")
+    # 상담일자 필터 타입: day, week, month: 수정 예정
+    consultation_date_filter_type: Optional[DateFilterType] = Field(None, description="상담일자 필터 타입 (day: 하루, week: 일주일, month: 한 달)")
+    # 상담일자 필터 값: 2025-10-27, 2025-10-27, 2025-10: 수정 예정
+    consultation_date_filter_value: Optional[str] = Field(None, description="상담일자 필터 값 (day: 2025-10-27, week: 2025-10-27, month: 2025-10)")
+    
+    # 정렬 설정
+    sort_by: Optional[SortBy] = Field(SortBy.CREATED_AT, description="정렬 기준 (created_at: 등록 날짜, total_payment: 총 결재액)")
+    
+    # 정렬 방향 설정
+    sort_direction: Optional[SortDirection] = Field(SortDirection.DESC, description="정렬 방향 (asc: 오름차순, desc: 내림차순)")
+    
+
+# 상담 멤버 조회 응답 스키마
+class ConsultationMemberResponse(BaseModel):
+    """상담 멤버 조회 응답 스키마"""
+    
+    user_uuid: str = Field(..., description="사용자 UUID")
+    display_name: str = Field(..., description="사용자 표시명")
 
 # 상담 조회 응답 스키마
 class ConsultationReadResponse(BaseModel):
     """상담 조회 응답 스키마"""
     
-    id: int = Field(..., description="상담 ID")
+    # id: int = Field(..., description="상담 ID")
     consultation_date: Optional[date] = Field(None, description="상담 일자")
-    start_time: Optional[datetime] = Field(None, description="상담 시작시간")
-    end_time: Optional[datetime] = Field(None, description="상담 종료시간")
+    start_time: Optional[time] = Field(None, description="상담 시작시간")
+    end_time: Optional[time] = Field(None, description="상담 종료시간")
     customer_name: Optional[str] = Field(None, description="고객명")
-    chart_number: Optional[int] = Field(None, description="차트번호")
+    chart_number: Optional[str] = Field(None, description="차트번호")
     inflow_path: Optional[str] = Field(None, description="유입경로")
     consultation_type: Optional[str] = Field(None, description="상담유형")
-    goal_treatment: Optional[bool] = Field(None, description="목표시술 여부")
+    goal_treatment: Optional[bool] = Field(None, description="목표시술")
     concern_type: Optional[str] = Field(None, description="고민유형")
     purchased_items: Optional[str] = Field(None, description="구매상품")
     is_upselling: Optional[bool] = Field(None, description="업셀링 여부")
@@ -73,6 +141,8 @@ class ConsultationListResponse(BaseModel):
     """상담 목록 조회 응답 스키마"""
     
     consultations: List[ConsultationReadResponse] = Field(..., description="상담 목록")
-    next_cursor: Optional[int] = Field(None, description="다음 페이지 커서")
+    current_page: int = Field(..., description="현재 페이지 번호")
+    total_pages: int = Field(..., description="전체 페이지 수")
+    total_items: int = Field(..., description="전체 데이터 수")
     has_next: bool = Field(..., description="다음 페이지 존재 여부")
-    total_count: int = Field(..., description="전체 상담 수")
+    has_previous: bool = Field(..., description="이전 페이지 존재 여부")

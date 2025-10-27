@@ -3,12 +3,13 @@
     클릭된 상품의 상세 정보를 조회합니다.
 """
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.orm import Session
 from db.session import get_db
 from ..schema import ProductDetailResponse
 from ..services.common_service import get_product_by_type, build_product_basic_info
 from ..services.detail_service import add_package_details
+from security.permissions import require_permission
 
 # FastAPI 라우터 생성
 router = APIRouter()
@@ -22,11 +23,15 @@ router = APIRouter()
 
 # response_model=ProductDetailResponse
 @router.get("/products/{product_id}")
+@require_permission("products_list:read:all")
 def get_product_detail(
+    request: Request,
     product_id: int,
     product_type: str = Query(..., description="상품 타입 (standard/event)"),
     db: Session = Depends(get_db)
 ):
+    # 권한 검사는 데코레이터에서 처리됨
+    # 비즈니스 로직만 작성
     try:
         # product_id, product_type에 따른 상품 조회
         product = get_product_by_type(product_id, product_type, db)
